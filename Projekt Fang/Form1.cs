@@ -6,8 +6,10 @@ using System.Drawing;
 using System.Drawing.Text;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 using Tesseract;
+using static System.Net.Mime.MediaTypeNames;
 
 
 
@@ -18,6 +20,7 @@ namespace Projekt_Fang
         public Form1()
         {
             InitializeComponent();
+            CheckForIllegalCrossThreadCalls = false;
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
             comboBox1.Items.Add("eng");
@@ -26,6 +29,30 @@ namespace Projekt_Fang
             comboBox1.Text = comboBox1.Items[1].ToString();
 
             saveSettingsWS.SettingsInitilize(panel1.Controls);
+            imageClipboard();
+        }
+        bool das = false;
+        void imageClipboard()
+        {
+            das = true;
+            Thread BD = new Thread(prtsc);
+            BD.IsBackground = true;
+            BD.Start();
+            void prtsc()
+            {
+                while(das)
+                {
+                    if (Clipboard.ContainsImage())
+                    {
+                        List<string> list = new List<string>();
+                        list.Add(textBox1.Text);
+                        pictureBox1.Image = (Bitmap)Clipboard.GetImage();
+                        //SaveQ((Bitmap)pictureBox1.Image, list);
+                        imToTxt((Bitmap)pictureBox1.Image.Clone());
+                    }
+                }
+                
+            }
         }
         //Image imSa = null;
         private void pictureBox1_Click(object sender, EventArgs e)
