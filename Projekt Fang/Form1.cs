@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using Tesseract;
-using static System.Net.Mime.MediaTypeNames;
-
-
 
 namespace Projekt_Fang
 {
@@ -40,21 +35,20 @@ namespace Projekt_Fang
             BD.Start();
             void prtsc()
             {
-                while(das)
+                while (das)
                 {
                     if (Clipboard.ContainsImage())
                     {
                         List<string> list = new List<string>();
                         list.Add(textBox1.Text);
                         pictureBox1.Image = (Bitmap)Clipboard.GetImage();
-                        //SaveQ((Bitmap)pictureBox1.Image, list);
                         imToTxt((Bitmap)pictureBox1.Image.Clone());
                     }
                 }
-                
+
             }
         }
-        //Image imSa = null;
+
         private void pictureBox1_Click(object sender, EventArgs e)
         {
             if (!Clipboard.ContainsImage()) { return; }
@@ -66,15 +60,16 @@ namespace Projekt_Fang
             Bitmap scImage = (Bitmap)Clipboard.GetImage();
             pictureBox.Image = scImage;
             //Clipboard.Clear();
-            string radek = imToTxt((Bitmap)scImage.Clone()).Replace("\n", " ");
+            /*string radek = imToTxt((Bitmap)scImage.Clone()).Replace("\n", " ");
             radek = radek.Replace("  ", "\n");
             radek = radek.Replace("\n\n", "\n");
-            richTextBox1.Text = radek;
+            richTextBox1.Text = radek;*/
+            pictureBox2.Image = imToTxt((Bitmap)scImage);
         }
 
-        string imToTxt(Bitmap obraz)
+        Bitmap imToTxt(Bitmap bmp)
         {
-            //using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.TesseractOnly))
+            Bitmap obraz = (Bitmap)bmp.Clone();
             TesseractEngine engine = new TesseractEngine(@"./tessdata", comboBox1.Text, EngineMode.Default);
 
             Pix img = PixConverter.ToPix(obraz);
@@ -103,8 +98,8 @@ namespace Projekt_Fang
                     }
                 }
             } while (iter.Next(PageIteratorLevel.Word));
-            pictureBox2.Image = obraz;
-            return page.GetText();
+            //pictureBox2.Image = obraz;
+            return obraz;//page.GetText();
         }
         SaveSettingsWS saveSettingsWS = new SaveSettingsWS();
         private void button2_Click(object sender, EventArgs e)
@@ -116,25 +111,17 @@ namespace Projekt_Fang
         string sQpathFolder = "C:\\Users\\kaktu\\Desktop\\Azk";
         int imR = 0;
 
-        void LoadQ(string sQpathFolder, int qInt)
-        {
-            StreamReader mugin = new StreamReader(sQpathFolder+ "\\qdtb.txt");
-            string nnn = mugin.ReadToEnd();
-            nnn = sQpathFolder + "\\" + nnn.Split('\n')[0].Split('_')[0];
-            Console.WriteLine("neco :  "+nnn);
-            pictureBox1.Image = new Bitmap(nnn); 
-        }
         void SaveQ(Bitmap bmp, List<string> deleni)
         {
             if (bmp == null) { return; }
-            sQpathFolder =  textBox2.Text;
+            sQpathFolder = textBox2.Text;
             // fotka, deleni1, deleni2 atd
-            if (imR == 0) { imR =foundNMIm(); }
+            if (imR == 0) { imR = foundNMIm(); }
             string cestaKIm = $"{imR:0000}.jpg";
             imR++;
             bmp.Save(sQpathFolder + "\\" + cestaKIm);
 
-            
+
 
             string zapKQ = $"{cestaKIm}_";
             foreach (string s in deleni)
@@ -146,7 +133,7 @@ namespace Projekt_Fang
             hugin.WriteLine(zapKQ);
             hugin.Close();
 
-            
+
             int foundNMIm()
             {
                 List<int> jpgFiles = Directory.GetFiles(sQpathFolder, "*.jpg")
@@ -157,7 +144,7 @@ namespace Projekt_Fang
 
                 if (jpgFiles.Any())
                 {
-                   return jpgFiles.Max(); // Find the highest number 
+                    return jpgFiles.Max(); // Find the highest number 
                 }
                 return 0;
             }
@@ -168,12 +155,82 @@ namespace Projekt_Fang
         {
             List<string> deleni = new List<string>();
             deleni.Add("01Kosti");
-            SaveQ((Bitmap)pictureBox1.Image,deleni);
+            SaveQ((Bitmap)pictureBox1.Image, deleni);
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        string[] obrazky = { };
+
+        int kolikaty = 0;
+        private void button5_Click(object sender, EventArgs e)
         {
-            LoadQ(sQpathFolder, 0);
+            kolikaty++;
+            pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty]));
+            button6.Text = "SHOW";
+        }
+        bool showHide = false;
+        private void button6_Click(object sender, EventArgs e)
+        {
+            showHide = !showHide;
+
+            if (showHide) 
+            { 
+                pictureBox3.Image = new Bitmap(obrazky[kolikaty]); 
+                (sender as Button).Text = "HIDE"; 
+            }
+            else 
+            {
+                pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty]));
+                (sender as Button).Text = "SHOW";
+            }
+        }
+        private void button4_Click_1(object sender, EventArgs e)
+        {
+            obrazky = Directory.GetFiles("C:\\Users\\kaktu\\Desktop\\Azk");
+            obrazky = chaosPole(obrazky);
+            pictureBox3.Image = imToTxt(new Bitmap(obrazky[0]));
+            string[] chaosPole(string[] pole)
+            {
+                string[] chaos = pole;
+                Random random = new Random();
+                for (int i = chaos.Length - 1; i > 0; i--)
+                {
+                    int j = random.Next(i + 1);
+
+                    string temp = chaos[i];
+                    chaos[i] = chaos[j];
+                    chaos[j] = temp;
+                }
+                return chaos;
+            }
+        }
+        // ze stack overflow + upravy
+        private Size oldSize;
+
+        private void Form1_Load(object sender, EventArgs e)
+        => oldSize = base.Size;
+        private void ResizeAll(Control control, Size newSize)
+        {
+            int width = newSize.Width - oldSize.Width;
+            control.Left += (control.Left * width) / oldSize.Width;
+            control.Width += (control.Width * width) / oldSize.Width;
+
+            int height = newSize.Height - oldSize.Height;
+            control.Top += (control.Top * height) / oldSize.Height;
+            control.Height += (control.Height * height) / oldSize.Height;
+        }
+        private void Form1_ResizeEnd(object sender, EventArgs e)
+        {
+            resize(panel2.Controls);
+            resize(tabPage2.Controls);
+            oldSize = base.Size;
+        }
+        void resize(Control.ControlCollection nnn)
+        {
+            ResizeAll(nnn.Owner, base.Size);
+            foreach (Control cnt in nnn)
+            {
+                ResizeAll(cnt, base.Size);
+            }
         }
     }
 }
