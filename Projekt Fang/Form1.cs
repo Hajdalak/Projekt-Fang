@@ -37,33 +37,35 @@ namespace Projekt_Fang
             {
                 while (das)
                 {
-                    if (Clipboard.ContainsImage())
-                    {
-                        List<string> list = new List<string>();
-                        list.Add(textBox1.Text);
-                        pictureBox1.Image = (Bitmap)Clipboard.GetImage();
-                        imToTxt((Bitmap)pictureBox1.Image.Clone());
-                    }
+                    CheckForIllegalCrossThreadCalls = false;
+                    Thread thread = new Thread(ccc);
+                    thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
+                    thread.Start();
+                    thread.Join();
+                    Thread.Sleep(1000);
                 }
 
+
+                void ccc()
+                {
+
+                    if (Clipboard.ContainsImage())
+                    {
+                        pictureBox1.Image = Clipboard.GetImage();
+                        imageChanged(pictureBox1);
+                        Clipboard.Clear();
+                    }
+                }
             }
         }
 
-        private void pictureBox1_Click(object sender, EventArgs e)
+        void imageChanged(PictureBox pictureBox)
         {
             if (!Clipboard.ContainsImage()) { return; }
-            if (!(sender is PictureBox)) { return; }
-
-            PictureBox pictureBox = (sender as PictureBox);
 
             if (pictureBox.SizeMode != PictureBoxSizeMode.Zoom) { pictureBox.SizeMode = PictureBoxSizeMode.Zoom; }
             Bitmap scImage = (Bitmap)Clipboard.GetImage();
             pictureBox.Image = scImage;
-            //Clipboard.Clear();
-            /*string radek = imToTxt((Bitmap)scImage.Clone()).Replace("\n", " ");
-            radek = radek.Replace("  ", "\n");
-            radek = radek.Replace("\n\n", "\n");
-            richTextBox1.Text = radek;*/
             pictureBox2.Image = imToTxt((Bitmap)scImage);
         }
 
@@ -159,35 +161,56 @@ namespace Projekt_Fang
         }
 
         string[] obrazky = { };
-
+        bool showHide = false;
         int kolikaty = 0;
         private void button5_Click(object sender, EventArgs e)
         {
-            kolikaty++;
-            pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty]));
-            button6.Text = "SHOW";
-        }
-        bool showHide = false;
-        private void button6_Click(object sender, EventArgs e)
-        {
-            showHide = !showHide;
+            switch (Convert.ToInt32(new string((sender as Button).Name.Where(char.IsDigit).ToArray())))
+            {
+                case 5:
 
-            if (showHide) 
-            { 
-                pictureBox3.Image = new Bitmap(obrazky[kolikaty]); 
-                (sender as Button).Text = "HIDE"; 
+                    if(kolikaty != obrazky.Count()) 
+                    { 
+                        kolikaty++;
+                        posun();
+                    }
+                    
+                    break;
+                case 3:
+
+                    if (kolikaty != 0)
+                    {
+                        kolikaty--;
+                        posun();
+                    }
+
+                    break;
+                case 6:
+                    showHide = !showHide;
+
+                    if (showHide)
+                    {
+                        pictureBox3.Image = new Bitmap(obrazky[kolikaty]);
+                        (sender as Button).Text = "Hide";
+                    }
+                    else
+                    {
+                        pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty]));
+                        (sender as Button).Text = "Show";
+                    }
+                    break;
+                case 4:
+                    obrazky = Directory.GetFiles("C:\\Users\\kaktu\\OneDrive\\Plocha\\Azk\\Kosti01");
+                    obrazky = chaosPole(obrazky);
+                    pictureBox3.Image = imToTxt(new Bitmap(obrazky[0]));
+                    break;
             }
-            else 
+            void posun()
             {
                 pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty]));
-                (sender as Button).Text = "SHOW";
+                button6.Text = "SHOW";
+                showHide = false;
             }
-        }
-        private void button4_Click_1(object sender, EventArgs e)
-        {
-            obrazky = Directory.GetFiles("C:\\Users\\kaktu\\Desktop\\Azk");
-            obrazky = chaosPole(obrazky);
-            pictureBox3.Image = imToTxt(new Bitmap(obrazky[0]));
             string[] chaosPole(string[] pole)
             {
                 string[] chaos = pole;
@@ -202,7 +225,10 @@ namespace Projekt_Fang
                 }
                 return chaos;
             }
+
         }
+        
+
         // ze stack overflow + upravy
         private Size oldSize;
 
