@@ -1,9 +1,11 @@
-﻿using System;
+﻿using IWshRuntimeLibrary;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using Tesseract;
@@ -14,6 +16,7 @@ namespace Projekt_Fang
     {
         public Form1()
         {
+            oldSize = base.Size;
             InitializeComponent();
             CheckForIllegalCrossThreadCalls = false;
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
@@ -24,20 +27,24 @@ namespace Projekt_Fang
             comboBox1.Text = comboBox1.Items[1].ToString();
 
             saveSettingsWS.SettingsInitilize(panel1.Controls);
-            imageClipboard();
+            //imageClipboard();
+            Thread SD = new Thread(KeyDet);
+            SD.IsBackground = true;
+            SD.Start();
         }
-        bool das = false;
+
         void imageClipboard()
         {
-            das = true;
+            killThread = true;
+            Clipboard.Clear();
             Thread BD = new Thread(prtsc);
             BD.IsBackground = true;
             BD.Start();
             void prtsc()
             {
-                while (das)
+                CheckForIllegalCrossThreadCalls = false;
+                while (killThread)
                 {
-                    CheckForIllegalCrossThreadCalls = false;
                     Thread thread = new Thread(ccc);
                     thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
                     thread.Start();
@@ -48,11 +55,10 @@ namespace Projekt_Fang
 
                 void ccc()
                 {
-
                     if (Clipboard.ContainsImage())
                     {
                         pictureBox1.Image = Clipboard.GetImage();
-                        imageChanged(pictureBox1);
+                        imageChanged(pictureBox2);
                         Clipboard.Clear();
                     }
                 }
@@ -63,43 +69,48 @@ namespace Projekt_Fang
         {
             if (!Clipboard.ContainsImage()) { return; }
 
-            if (pictureBox.SizeMode != PictureBoxSizeMode.Zoom) { pictureBox.SizeMode = PictureBoxSizeMode.Zoom; }
+            //if (pictureBox.SizeMode != PictureBoxSizeMode.Zoom) { pictureBox.SizeMode = PictureBoxSizeMode.Zoom; }
             Bitmap scImage = (Bitmap)Clipboard.GetImage();
-            pictureBox.Image = scImage;
-            pictureBox2.Image = imToTxt((Bitmap)scImage);
+            pictureBox.Image = imToTxt((Bitmap)scImage);
+            scImage.Dispose();
         }
-
         Bitmap imToTxt(Bitmap bmp)
         {
             Bitmap obraz = (Bitmap)bmp.Clone();
-            TesseractEngine engine = new TesseractEngine(@"./tessdata", comboBox1.Text, EngineMode.Default);
-
-            Pix img = PixConverter.ToPix(obraz);
-            Page page = engine.Process(img);
-            ResultIterator iter = page.GetIterator();
-
-            iter.Begin();
-            do
+            using (TesseractEngine engine = new TesseractEngine(@"./tessdata", comboBox1.Text, EngineMode.Default))
+            using (Pix img = PixConverter.ToPix(obraz))
+            using (Page page = engine.Process(img))
             {
-                if (iter.IsAtBeginningOf(PageIteratorLevel.Word))
+                ResultIterator iter = page.GetIterator();
+                iter.Begin();
+
+                do
                 {
-                    Rect bounds;
-                    if (iter.TryGetBoundingBox(PageIteratorLevel.Word, out bounds))
+                    if (iter.IsAtBeginningOf(PageIteratorLevel.Word))
                     {
-                        /* 
-                         Console.WriteLine($"Word: {iter.GetText(PageIteratorLevel.Word)}");
-                         Console.WriteLine($"BoundingBox: X={bounds.X1}, Y={bounds.Y1}, Width={bounds.Width}, Height={bounds.Height}");
-                        */
-                        if (!(iter.GetText(PageIteratorLevel.Word).Any(char.IsLetter)))
+                        Rect bounds;
+                        if (iter.TryGetBoundingBox(PageIteratorLevel.Word, out bounds))
                         {
-                            continue;
+                            //Console.WriteLine($"Word: {iter.GetText(PageIteratorLevel.Word)}");
+                            //Console.WriteLine($"BoundingBox: X={bounds.X1}, Y={bounds.Y1}, Width={bounds.Width}, Height={bounds.Height}");
+
+                            if (!iter.GetText(PageIteratorLevel.Word).Any(char.IsLetter))
+                            {
+                                continue;
+                            }
+                            using (Graphics g = Graphics.FromImage(obraz))
+                            {
+                                using (Brush whiteBrush = new SolidBrush(Color.White))
+                                {
+                                    g.FillRectangle(whiteBrush, bounds.X1, bounds.Y1, bounds.Width, bounds.Height);
+                                }
+                            }
+
                         }
-                        Graphics g = Graphics.FromImage(obraz);
-                        Brush whiteBrush = new SolidBrush(Color.White);
-                        g.FillRectangle(whiteBrush, bounds.X1, bounds.Y1, bounds.Width, bounds.Height);
                     }
-                }
-            } while (iter.Next(PageIteratorLevel.Word));
+                } while (iter.Next(PageIteratorLevel.Word));
+            }
+
             //pictureBox2.Image = obraz;
             return obraz;//page.GetText();
         }
@@ -125,7 +136,7 @@ namespace Projekt_Fang
 
 
 
-            string zapKQ = $"{cestaKIm}_";
+           /* string zapKQ = $"{cestaKIm}_";
             foreach (string s in deleni)
             {
                 zapKQ += $"{s}_";
@@ -133,7 +144,7 @@ namespace Projekt_Fang
             zapKQ = zapKQ.Substring(0, zapKQ.Length - 1);
             StreamWriter hugin = new StreamWriter(sQpathFolder + "\\qdtb.txt", true);
             hugin.WriteLine(zapKQ);
-            hugin.Close();
+            hugin.Close();*/
 
 
             int foundNMIm()
@@ -152,6 +163,43 @@ namespace Projekt_Fang
             }
 
         }
+        // json
+        //string jsonString = JsonSerializer.Serialize(data);
+        /*
+         string jsonString = JsonSerializer.Serialize(data);
+         
+         
+         */
+        [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(Keys vKey);
+        bool kill = false;
+        Keys kNext = Keys.N;
+        Keys kPrev = Keys.J;
+        Keys kShowHide = Keys.M;
+        void KeyDet()
+        {
+            while (kill == false)
+            {
+                if (GetAsyncKeyState(kNext) < 0)
+                {
+                    button5_Click(button5, null); 
+                    Thread.Sleep(100);
+                }
+                else if (GetAsyncKeyState(kShowHide) < 0)
+                {
+                    button5_Click(button6, null);
+                    Thread.Sleep(100);
+                }
+                else if (GetAsyncKeyState(kPrev) < 0)
+                {
+                    button5_Click(button3, null);
+                    Thread.Sleep(100);
+                }
+
+
+                    Thread.Sleep(70);
+            }
+        }
 
         private void button1_Click(object sender, EventArgs e)
         {
@@ -163,26 +211,25 @@ namespace Projekt_Fang
         string[] obrazky = { };
         bool showHide = false;
         int kolikaty = 0;
+        bool killThread = false;
         private void button5_Click(object sender, EventArgs e)
         {
             switch (Convert.ToInt32(new string((sender as Button).Name.Where(char.IsDigit).ToArray())))
             {
                 case 5:
 
-                    if(kolikaty != obrazky.Count()) 
-                    { 
-                        kolikaty++;
-                        posun();
-                    }
-                    
+                    if(kolikaty != obrazky.Count()-1) { kolikaty++;}
+                    else { kolikaty = 0; }
+
+                    posun();
+
                     break;
                 case 3:
 
-                    if (kolikaty != 0)
-                    {
-                        kolikaty--;
-                        posun();
-                    }
+                    if (kolikaty != 0) { kolikaty--; }
+                    else { kolikaty = obrazky.Count() - 1; }
+
+                    posun();
 
                     break;
                 case 6:
@@ -199,16 +246,26 @@ namespace Projekt_Fang
                         (sender as Button).Text = "Show";
                     }
                     break;
+
                 case 4:
-                    obrazky = Directory.GetFiles("C:\\Users\\kaktu\\OneDrive\\Plocha\\Azk\\Kosti01");
+                    obrazky = Directory.GetFiles(textBox2.Text);
                     obrazky = chaosPole(obrazky);
                     pictureBox3.Image = imToTxt(new Bitmap(obrazky[0]));
+                    label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
+                    break;
+                case 7:
+                    if (killThread) { killThread = false; (sender as Button).Text = "Start"; }
+                    else { imageClipboard(); (sender as Button).Text = "Stop"; }
                     break;
             }
+            
             void posun()
             {
-                pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty]));
-                button6.Text = "SHOW";
+                if(pictureBox3 != null) { pictureBox3.Image.Dispose(); pictureBox3.Image = null; }
+                Bitmap x = new Bitmap(obrazky[kolikaty]);
+                pictureBox3.Image = imToTxt(x); 
+                label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
+                button6.Text = "Show";
                 showHide = false;
             }
             string[] chaosPole(string[] pole)
@@ -257,6 +314,22 @@ namespace Projekt_Fang
             {
                 ResizeAll(cnt, base.Size);
             }
+        }
+        bool c = false;
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            if (WindowState != FormWindowState.Minimized && c)
+            {
+                resize(panel2.Controls);
+                resize(tabPage2.Controls);
+                oldSize = base.Size;
+            }
+            c = true;
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            TopMost = checkBox1.Checked;
         }
     }
 }

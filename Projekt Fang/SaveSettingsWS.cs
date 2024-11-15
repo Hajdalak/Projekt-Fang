@@ -34,7 +34,7 @@ namespace Projekt_Fang
         {
             if (!Directory.Exists(settingFilePath)) { Directory.CreateDirectory(settingFilePath); }
             if (!File.Exists(settingFilePath + "\\" + nameTxt01)) { File.Create(settingFilePath + "\\" + nameTxt01); }
-            else { SettingsLoad(control); }
+            else { SettingsLoad(control);  }
         }
         public void SettingsSave(Control.ControlCollection control)
         {
@@ -52,6 +52,7 @@ namespace Projekt_Fang
                     CW += cnt.GetType() + "_" + cnt.Name + "_" + tx.Text + "\n";
                 }
             }
+            CW += "\n";
             Console.WriteLine(CW);
             StreamWriter mugin = new StreamWriter(settingFilePath + "\\" + nameTxt01);
             mugin.Write(CW);
@@ -64,10 +65,11 @@ namespace Projekt_Fang
             string vse = hugin.ReadToEnd();
             hugin.Close();
             string[] komponenty = vse.Split('\n');
+
             if (control.Owner.Name != komponenty[0]) { return ""; }
+
             for (int i = 1; i < (komponenty.Count() - 2); i++)
             {
-
                 CntData cntData = new CntData(komponenty[i].Split('_')[0], komponenty[i].Split('_')[1], komponenty[i].Split('_')[2]);
                 Console.WriteLine(cntData.typeOfControl + "_" + cntData.nameOfControl + "_" + cntData.dataFromControl);
                 if (cntData.typeOfControl.Contains("CheckBox"))
@@ -77,6 +79,7 @@ namespace Projekt_Fang
                 }
                 else if (cntData.typeOfControl.Contains("TextBox"))
                 {
+                    
                     Control[] foundControls = control.Find(cntData.nameOfControl, true);
                     (foundControls[0] as TextBox).Text = cntData.dataFromControl;
                 }
