@@ -9,6 +9,9 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using Tesseract;
+using System.Text.Json;
+using static Projekt_Fang.Form1;
+using System.Text.Json.Serialization;
 
 namespace Projekt_Fang
 {
@@ -32,7 +35,75 @@ namespace Projekt_Fang
             SD.IsBackground = true;
             SD.Start();
         }
+        public class Otazka
+        {
+            public int Spatne { get; set; }
+            public int Spravne { get; set; }
+            public int Celkem { get; set; }
+            public string Subtrida { get; set; }
+            public string Path { get; set; }
+            [JsonConstructor]
+            public Otazka(string Path, string Subtrida, int Celkem, int Spatne, int Spravne)
 
+            {
+                this.Spatne = Spatne;
+                this.Spravne = Spravne;
+                this.Celkem = Celkem;
+                this.Path = Path;
+                this.Subtrida = Subtrida;
+            }
+            public Otazka(string Path, string Subtrida)
+
+            {
+                this.Spatne = 0;
+                this.Spravne = 0;
+                this.Celkem = 0;
+                this.Path = Path;
+                this.Subtrida = Subtrida;
+            }
+        }
+        List<Otazka> Otazky = new List<Otazka>();
+        void ScanObr(string folderPath)
+        {
+            string[] temp  = Directory.GetFiles(folderPath, "*.jpg");
+            string x = folderPath.Substring(0, folderPath.Length - 1);
+            x = x.Substring(x.LastIndexOf("\\") + 1, x.Length - x.LastIndexOf("\\") -1 );
+            Otazka tmp = null;
+
+            foreach (string radek in temp)
+            {
+
+                tmp = Otazky.FirstOrDefault(otazka => otazka.Path == radek);
+
+                if (tmp != null)
+                {
+                    Otazky.Add(tmp);
+                }
+                else
+                {
+                    Otazky.Add(new Otazka(radek,x));
+                }
+            }
+            StreamWriter mugin = new StreamWriter(folderPath + $"{x}.json");
+            mugin.WriteLine(JsonSerializer.Serialize(Otazky));
+            mugin.Close();
+        }
+        void LoadObr(string folderPath,bool pridat)
+        {
+            string n = Directory.GetFiles(folderPath, "*.json")[0];
+
+            StreamReader mugin = new StreamReader(n);
+            string precteno = mugin.ReadToEnd();
+            mugin.Close();
+
+            if (pridat) { Otazky.AddRange(JsonSerializer.Deserialize<List<Otazka>>(precteno)); }
+            else { Otazky = JsonSerializer.Deserialize<List<Otazka>>(precteno); }
+            
+        }
+        private void button10_Click(object sender, EventArgs e)
+        {
+            ScanObr(textBox2.Text);
+        }
         void imageClipboard()
         {
             killThread = true;
@@ -68,8 +139,6 @@ namespace Projekt_Fang
         void imageChanged(PictureBox pictureBox)
         {
             if (!Clipboard.ContainsImage()) { return; }
-
-            //if (pictureBox.SizeMode != PictureBoxSizeMode.Zoom) { pictureBox.SizeMode = PictureBoxSizeMode.Zoom; }
             Bitmap scImage = (Bitmap)Clipboard.GetImage();
             pictureBox.Image = imToTxt((Bitmap)scImage);
             scImage.Dispose();
@@ -163,13 +232,7 @@ namespace Projekt_Fang
             }
 
         }
-        // json
-        //string jsonString = JsonSerializer.Serialize(data);
-        /*
-         string jsonString = JsonSerializer.Serialize(data);
-         
-         
-         */
+
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(Keys vKey);
         bool kill = false;
@@ -208,7 +271,7 @@ namespace Projekt_Fang
             SaveQ((Bitmap)pictureBox1.Image, deleni);
         }
 
-        string[] obrazky = { };
+        Otazka[] obrazky = { };
         bool showHide = false;
         int kolikaty = 0;
         bool killThread = false;
@@ -237,20 +300,21 @@ namespace Projekt_Fang
 
                     if (showHide)
                     {
-                        pictureBox3.Image = new Bitmap(obrazky[kolikaty]);
+                        pictureBox3.Image = new Bitmap(obrazky[kolikaty].Path);
                         (sender as Button).Text = "Hide";
                     }
                     else
                     {
-                        pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty]));
+                        pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty].Path));
                         (sender as Button).Text = "Show";
                     }
                     break;
 
                 case 4:
-                    obrazky = Directory.GetFiles(textBox2.Text);
+                    LoadObr(textBox2.Text, false);
+                    obrazky = Otazky.ToArray();
                     obrazky = chaosPole(obrazky);
-                    pictureBox3.Image = imToTxt(new Bitmap(obrazky[0]));
+                    pictureBox3.Image = imToTxt(new Bitmap(obrazky[0].Path));
                     label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
                     break;
                 case 7:
@@ -262,21 +326,21 @@ namespace Projekt_Fang
             void posun()
             {
                 if(pictureBox3 != null) { pictureBox3.Image.Dispose(); pictureBox3.Image = null; }
-                Bitmap x = new Bitmap(obrazky[kolikaty]);
+                Bitmap x = new Bitmap(obrazky[kolikaty].Path);
                 pictureBox3.Image = imToTxt(x); 
                 label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
                 button6.Text = "Show";
                 showHide = false;
             }
-            string[] chaosPole(string[] pole)
+            Otazka[] chaosPole(Otazka[] pole)
             {
-                string[] chaos = pole;
+                Otazka[] chaos = pole;
                 Random random = new Random();
                 for (int i = chaos.Length - 1; i > 0; i--)
                 {
                     int j = random.Next(i + 1);
 
-                    string temp = chaos[i];
+                    Otazka temp = chaos[i];
                     chaos[i] = chaos[j];
                     chaos[j] = temp;
                 }
@@ -331,5 +395,7 @@ namespace Projekt_Fang
         {
             TopMost = checkBox1.Checked;
         }
+
+        
     }
 }
