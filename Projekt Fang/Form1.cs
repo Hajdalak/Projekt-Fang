@@ -396,6 +396,9 @@ namespace Projekt_Fang
             TopMost = checkBox1.Checked;
         }
 
-        
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
