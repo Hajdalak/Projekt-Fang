@@ -1,5 +1,4 @@
-﻿using IWshRuntimeLibrary;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
@@ -10,7 +9,6 @@ using System.Threading;
 using System.Windows.Forms;
 using Tesseract;
 using System.Text.Json;
-using static Projekt_Fang.Form1;
 using System.Text.Json.Serialization;
 
 namespace Projekt_Fang
@@ -31,9 +29,17 @@ namespace Projekt_Fang
 
             saveSettingsWS.SettingsInitilize(panel1.Controls);
             //imageClipboard();
-            Thread SD = new Thread(KeyDet);
-            SD.IsBackground = true;
-            SD.Start();
+            getAllF(textBox2.Text);
+        }
+        void getAllF(string VetsiFolderPath)
+        {
+           string[] slozky = Directory.GetDirectories(VetsiFolderPath);
+            foreach (string s in slozky) 
+            { 
+                comboBox3.Items.Add(s.Replace(VetsiFolderPath,""));
+                comboBox2.Items.Add(s.Replace(VetsiFolderPath, ""));
+                comboBox2.Text = comboBox2.Items[0].ToString();
+            }
         }
         public class Otazka
         {
@@ -63,34 +69,38 @@ namespace Projekt_Fang
             }
         }
         List<Otazka> Otazky = new List<Otazka>();
-        void ScanObr(string folderPath)
+        string ScanObr(string folderPath)
         {
             string[] temp  = Directory.GetFiles(folderPath, "*.jpg");
-            string x = folderPath.Substring(0, folderPath.Length - 1);
-            x = x.Substring(x.LastIndexOf("\\") + 1, x.Length - x.LastIndexOf("\\") -1 );
+            string x = folderPath;
+            x = x.Substring(x.LastIndexOf("\\") , x.Length - x.LastIndexOf("\\")  );
             Otazka tmp = null;
+            List<Otazka> ul = new List<Otazka>();
 
             foreach (string radek in temp)
             {
-
                 tmp = Otazky.FirstOrDefault(otazka => otazka.Path == radek);
 
-                if (tmp != null)
+                if (tmp == null)
                 {
-                    Otazky.Add(tmp);
+                    ul.Add(new Otazka(radek, x));
                 }
-                else
-                {
-                    Otazky.Add(new Otazka(radek,x));
-                }
+                else { ul.Add(tmp); Console.WriteLine("pridano"); }
             }
-            StreamWriter mugin = new StreamWriter(folderPath + $"{x}.json");
-            mugin.WriteLine(JsonSerializer.Serialize(Otazky));
+            string cesta = $"{folderPath}{x}.json";
+            Console.WriteLine("cesta: "+ cesta);
+            //if (File.Exists(cesta)) { File.Delete(cesta);  }
+            StreamWriter mugin = new StreamWriter(cesta);
+            mugin.WriteLine(JsonSerializer.Serialize(ul));
             mugin.Close();
+            return cesta;
         }
         void LoadObr(string folderPath,bool pridat)
         {
-            string n = Directory.GetFiles(folderPath, "*.json")[0];
+            string 
+            n = Directory.GetFiles(folderPath, "*.json").FirstOrDefault();
+            Console.WriteLine("NNNN: " + n);
+            if(n == null) { n = ScanObr(folderPath); }
 
             StreamReader mugin = new StreamReader(n);
             string precteno = mugin.ReadToEnd();
@@ -190,31 +200,18 @@ namespace Projekt_Fang
             saveSettingsWS.SettingsSave(panel1.Controls);
         }
 
-        string sQpathFolder = "C:\\Users\\kaktu\\Desktop\\Azk";
+
         int imR = 0;
 
-        void SaveQ(Bitmap bmp, List<string> deleni)
+        void SaveQ(Bitmap bmp , string path)
         {
             if (bmp == null) { return; }
-            sQpathFolder = textBox2.Text;
+            string sQpathFolder = path;
             // fotka, deleni1, deleni2 atd
             if (imR == 0) { imR = foundNMIm(); }
             string cestaKIm = $"{imR:0000}.jpg";
             imR++;
             bmp.Save(sQpathFolder + "\\" + cestaKIm);
-
-
-
-           /* string zapKQ = $"{cestaKIm}_";
-            foreach (string s in deleni)
-            {
-                zapKQ += $"{s}_";
-            }
-            zapKQ = zapKQ.Substring(0, zapKQ.Length - 1);
-            StreamWriter hugin = new StreamWriter(sQpathFolder + "\\qdtb.txt", true);
-            hugin.WriteLine(zapKQ);
-            hugin.Close();*/
-
 
             int foundNMIm()
             {
@@ -264,21 +261,16 @@ namespace Projekt_Fang
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            List<string> deleni = new List<string>();
-            deleni.Add("01Kosti");
-            SaveQ((Bitmap)pictureBox1.Image, deleni);
-        }
-
         Otazka[] obrazky = { };
         bool showHide = false;
         int kolikaty = 0;
         bool killThread = false;
+        bool start = true;
         private void button5_Click(object sender, EventArgs e)
         {
             switch (Convert.ToInt32(new string((sender as Button).Name.Where(char.IsDigit).ToArray())))
             {
+                case 1: SaveQ((Bitmap)pictureBox1.Image, textBox2.Text + comboBox3.Text); break;
                 case 5:
 
                     if(kolikaty != obrazky.Count()-1) { kolikaty++;}
@@ -311,15 +303,52 @@ namespace Projekt_Fang
                     break;
 
                 case 4:
-                    LoadObr(textBox2.Text, false);
-                    obrazky = Otazky.ToArray();
-                    obrazky = chaosPole(obrazky);
-                    pictureBox3.Image = imToTxt(new Bitmap(obrazky[0].Path));
-                    label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
+                    if (start)
+                    {
+                        Console.WriteLine(textBox2.Text  + comboBox2.Text);
+                        LoadObr((textBox2.Text +comboBox2.Text), false);
+                        obrazky = Otazky.ToArray();
+                        if (obrazky.Count() == 0) { }
+                        obrazky = chaosPole(obrazky);
+                        pictureBox3.Image = imToTxt(new Bitmap(obrazky[0].Path));
+                        label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
+                        start = false;
+                        kill = false;
+                        Thread SD = new Thread(KeyDet);
+                        SD.IsBackground = true;
+                        SD.Start();
+                        (sender as Button).Text = "End";
+                        button11.Text = $"Wrong: {obrazky[kolikaty].Spatne}";
+                        button12.Text = $"Right: {obrazky[kolikaty].Spravne}";
+                    }
+                    else
+                    {
+                        Otazky.Clear();
+                        Otazky.AddRange( obrazky.ToList().OrderBy(x => x.Path));
+                        ScanObr(textBox2.Text + comboBox2.Text);
+                        start = true;
+                        kolikaty = 0;
+                        pictureBox3.Image.Dispose();
+                        pictureBox3.Image = null;
+                        kill = true;
+                        (sender as Button).Text = "Start";
+                        button11.Text = $"Wrong: ";
+                        button12.Text = $"Right: ";
+                        label1.Text = "0 : 0";
+                    }
+                    
                     break;
                 case 7:
                     if (killThread) { killThread = false; (sender as Button).Text = "Start"; }
                     else { imageClipboard(); (sender as Button).Text = "Stop"; }
+                    break;
+                case 11:
+                    obrazky[kolikaty].Spatne += 1;
+                    (sender as Button).Text = $"Wrong: {obrazky[kolikaty].Spatne}";
+                    break;
+                case 12:
+                    obrazky[kolikaty].Spravne += 1;
+                    (sender as Button).Text = $"Right: {obrazky[kolikaty].Spravne}";
                     break;
             }
             
@@ -329,6 +358,8 @@ namespace Projekt_Fang
                 Bitmap x = new Bitmap(obrazky[kolikaty].Path);
                 pictureBox3.Image = imToTxt(x); 
                 label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
+                button11.Text = $"Wrong: {obrazky[kolikaty].Spatne}";
+                button12.Text = $"Right: {obrazky[kolikaty].Spravne}";
                 button6.Text = "Show";
                 showHide = false;
             }
@@ -336,7 +367,7 @@ namespace Projekt_Fang
             {
                 Otazka[] chaos = pole;
                 Random random = new Random();
-                for (int i = chaos.Length - 1; i > 0; i--)
+                for (int i = chaos.Count() - 1; i > 0; i--)
                 {
                     int j = random.Next(i + 1);
 
@@ -344,6 +375,7 @@ namespace Projekt_Fang
                     chaos[i] = chaos[j];
                     chaos[j] = temp;
                 }
+                chaos = chaos.OrderBy(x => (x.Spravne - x.Spatne)).ToArray();
                 return chaos;
             }
 
@@ -386,6 +418,8 @@ namespace Projekt_Fang
             {
                 resize(panel2.Controls);
                 resize(tabPage2.Controls);
+                resize(panel1.Controls);
+                resize(tabPage1.Controls);
                 oldSize = base.Size;
             }
             c = true;
@@ -394,11 +428,6 @@ namespace Projekt_Fang
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
             TopMost = checkBox1.Checked;
-        }
-
-        private void label1_Click(object sender, EventArgs e)
-        {
-
         }
     }
 }
