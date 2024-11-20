@@ -86,6 +86,37 @@ namespace Projekt_Fang
             }
             return vse;
         }
+        
+        public List<Control> GetAllCon(Control coll)
+        {
+            List<Control> list = new List<Control>();
+            List<Control> list2 = new List<Control>();
+            List<Control> list3 = new List<Control>();
+            foreach (Control cnt in coll.Controls) { list.Add(cnt); list3.Add(cnt); }
+
+            while (true)
+            {
+                foreach (Control www in list3)
+                {
+                    nnn(www);
+                }
+                if (list2.Count == 0) { break; }
+                list3.Clear();
+                list3.AddRange(list2);
+                list2.Clear();
+            }
+            return list;
+
+            void nnn(Control bbb)
+            {
+                foreach (Control cnt in bbb.Controls)
+                {
+                    list.Add(cnt);
+                    list2.Add(cnt);
+                }
+            }
+        }
+
         public void OpenFolder() { Process.Start(settingFilePath); }
         public string ChooseFolder(bool viaText_Dialog, string viText)
         {

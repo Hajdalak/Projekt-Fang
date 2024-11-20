@@ -33,10 +33,10 @@ namespace Projekt_Fang
         }
         void getAllF(string VetsiFolderPath)
         {
-           string[] slozky = Directory.GetDirectories(VetsiFolderPath);
-            foreach (string s in slozky) 
-            { 
-                comboBox3.Items.Add(s.Replace(VetsiFolderPath,""));
+            string[] slozky = Directory.GetDirectories(VetsiFolderPath);
+            foreach (string s in slozky)
+            {
+                comboBox3.Items.Add(s.Replace(VetsiFolderPath, ""));
                 comboBox2.Items.Add(s.Replace(VetsiFolderPath, ""));
                 comboBox2.Text = comboBox2.Items[0].ToString();
             }
@@ -71,9 +71,9 @@ namespace Projekt_Fang
         List<Otazka> Otazky = new List<Otazka>();
         string ScanObr(string folderPath)
         {
-            string[] temp  = Directory.GetFiles(folderPath, "*.jpg");
+            string[] temp = Directory.GetFiles(folderPath, "*.jpg");
             string x = folderPath;
-            x = x.Substring(x.LastIndexOf("\\") , x.Length - x.LastIndexOf("\\")  );
+            x = x.Substring(x.LastIndexOf("\\"), x.Length - x.LastIndexOf("\\"));
             Otazka tmp = null;
             List<Otazka> ul = new List<Otazka>();
 
@@ -88,19 +88,19 @@ namespace Projekt_Fang
                 else { ul.Add(tmp); Console.WriteLine("pridano"); }
             }
             string cesta = $"{folderPath}{x}.json";
-            Console.WriteLine("cesta: "+ cesta);
+            Console.WriteLine("cesta: " + cesta);
             //if (File.Exists(cesta)) { File.Delete(cesta);  }
             StreamWriter mugin = new StreamWriter(cesta);
             mugin.WriteLine(JsonSerializer.Serialize(ul));
             mugin.Close();
             return cesta;
         }
-        void LoadObr(string folderPath,bool pridat)
+        void LoadObr(string folderPath, bool pridat)
         {
-            string 
+            string
             n = Directory.GetFiles(folderPath, "*.json").FirstOrDefault();
             Console.WriteLine("NNNN: " + n);
-            if(n == null) { n = ScanObr(folderPath); }
+            if (n == null) { n = ScanObr(folderPath); }
 
             StreamReader mugin = new StreamReader(n);
             string precteno = mugin.ReadToEnd();
@@ -108,11 +108,11 @@ namespace Projekt_Fang
 
             if (pridat) { Otazky.AddRange(JsonSerializer.Deserialize<List<Otazka>>(precteno)); }
             else { Otazky = JsonSerializer.Deserialize<List<Otazka>>(precteno); }
-            
+
         }
         private void button10_Click(object sender, EventArgs e)
         {
-            ScanObr(textBox2.Text);
+            saveSettingsWS.GetAllCon(tabControl1);
         }
         void imageClipboard()
         {
@@ -151,7 +151,7 @@ namespace Projekt_Fang
             if (!Clipboard.ContainsImage()) { return; }
             Bitmap scImage = (Bitmap)Clipboard.GetImage();
             pictureBox.Image = imToTxt((Bitmap)scImage);
-            scImage.Dispose();
+
         }
         Bitmap imToTxt(Bitmap bmp)
         {
@@ -203,7 +203,7 @@ namespace Projekt_Fang
 
         int imR = 0;
 
-        void SaveQ(Bitmap bmp , string path)
+        void SaveQ(Bitmap bmp, string path)
         {
             if (bmp == null) { return; }
             string sQpathFolder = path;
@@ -242,7 +242,7 @@ namespace Projekt_Fang
             {
                 if (GetAsyncKeyState(kNext) < 0)
                 {
-                    button5_Click(button5, null); 
+                    button5_Click(button5, null);
                     Thread.Sleep(100);
                 }
                 else if (GetAsyncKeyState(kShowHide) < 0)
@@ -257,7 +257,7 @@ namespace Projekt_Fang
                 }
 
 
-                    Thread.Sleep(70);
+                Thread.Sleep(70);
             }
         }
 
@@ -273,7 +273,7 @@ namespace Projekt_Fang
                 case 1: SaveQ((Bitmap)pictureBox1.Image, textBox2.Text + comboBox3.Text); break;
                 case 5:
 
-                    if(kolikaty != obrazky.Count()-1) { kolikaty++;}
+                    if (kolikaty != obrazky.Count() - 1) { kolikaty++; }
                     else { kolikaty = 0; }
 
                     posun();
@@ -305,8 +305,8 @@ namespace Projekt_Fang
                 case 4:
                     if (start)
                     {
-                        Console.WriteLine(textBox2.Text  + comboBox2.Text);
-                        LoadObr((textBox2.Text +comboBox2.Text), false);
+                        Console.WriteLine(textBox2.Text + comboBox2.Text);
+                        LoadObr((textBox2.Text + comboBox2.Text), false);
                         obrazky = Otazky.ToArray();
                         if (obrazky.Count() == 0) { }
                         obrazky = chaosPole(obrazky);
@@ -324,7 +324,7 @@ namespace Projekt_Fang
                     else
                     {
                         Otazky.Clear();
-                        Otazky.AddRange( obrazky.ToList().OrderBy(x => x.Path));
+                        Otazky.AddRange(obrazky.ToList().OrderBy(x => x.Path));
                         ScanObr(textBox2.Text + comboBox2.Text);
                         start = true;
                         kolikaty = 0;
@@ -336,7 +336,7 @@ namespace Projekt_Fang
                         button12.Text = $"Right: ";
                         label1.Text = "0 : 0";
                     }
-                    
+
                     break;
                 case 7:
                     if (killThread) { killThread = false; (sender as Button).Text = "Start"; }
@@ -351,12 +351,12 @@ namespace Projekt_Fang
                     (sender as Button).Text = $"Right: {obrazky[kolikaty].Spravne}";
                     break;
             }
-            
+
             void posun()
             {
-                if(pictureBox3 != null) { pictureBox3.Image.Dispose(); pictureBox3.Image = null; }
-                Bitmap x = new Bitmap(obrazky[kolikaty].Path);
-                pictureBox3.Image = imToTxt(x); 
+                if (pictureBox3 != null) { pictureBox3.Image.Dispose(); pictureBox3.Image = null; }
+                using (Bitmap x = new Bitmap(obrazky[kolikaty].Path))
+                    pictureBox3.Image = imToTxt(x);
                 label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
                 button11.Text = $"Wrong: {obrazky[kolikaty].Spatne}";
                 button12.Text = $"Right: {obrazky[kolikaty].Spravne}";
@@ -380,7 +380,7 @@ namespace Projekt_Fang
             }
 
         }
-        
+
 
         // ze stack overflow + upravy
         private Size oldSize;
