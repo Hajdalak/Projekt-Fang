@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -29,12 +30,63 @@ namespace Projekt_Fang
         // udelej default nacteni napr. settingFilePath a cesta epubu
 
         private string settingFilePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\lsekaiMan" + "\\" + Assembly.GetExecutingAssembly().GetName().Name;
-        static string nameTxt01 = "Settings.txt";
+        private static string nameTxt01 = "Settings.txt";
+        private Size oldSize;
+        List<Control> allCon = new List<Control>();
         public void SettingsInitilize(Control.ControlCollection control)
         {
             if (!Directory.Exists(settingFilePath)) { Directory.CreateDirectory(settingFilePath); }
             if (!File.Exists(settingFilePath + "\\" + nameTxt01)) { File.Create(settingFilePath + "\\" + nameTxt01); }
             else { SettingsLoad(control);  }
+        }
+        public void SizeInitilize(Control TopControl, Size FormSize)
+        {
+            allCon.Clear();
+            allCon.AddRange(GetAllCon(TopControl));
+            oldSize = FormSize;
+        }
+        public List<Control> GetAllCon(Control coll)
+        {
+            List<Control> list = new List<Control>();
+            List<Control> list2 = new List<Control>();
+            List<Control> list3 = new List<Control>();
+            foreach (Control cnt in coll.Controls) { list.Add(cnt); list3.Add(cnt); }
+
+            while (true)
+            {
+                foreach (Control www in list3)
+                {
+                    nnn(www);
+                }
+                if (list2.Count == 0) { break; }
+                list3.Clear();
+                list3.AddRange(list2);
+                list2.Clear();
+            }
+            return list;
+
+            void nnn(Control bbb)
+            {
+                foreach (Control cnt in bbb.Controls)
+                {
+                    list.Add(cnt);
+                    list2.Add(cnt);
+                }
+            }
+        }
+        public void ResizeAll(Size newSize)
+        {
+            foreach (Control control in allCon)
+            {
+                int width = newSize.Width - oldSize.Width;
+                control.Left += (control.Left * width) / oldSize.Width;
+                control.Width += (control.Width * width) / oldSize.Width;
+
+                int height = newSize.Height - oldSize.Height;
+                control.Top += (control.Top * height) / oldSize.Height;
+                control.Height += (control.Height * height) / oldSize.Height;
+            }
+            oldSize = newSize;
         }
         public void SettingsSave(Control.ControlCollection control)
         {
@@ -86,37 +138,6 @@ namespace Projekt_Fang
             }
             return vse;
         }
-        
-        public List<Control> GetAllCon(Control coll)
-        {
-            List<Control> list = new List<Control>();
-            List<Control> list2 = new List<Control>();
-            List<Control> list3 = new List<Control>();
-            foreach (Control cnt in coll.Controls) { list.Add(cnt); list3.Add(cnt); }
-
-            while (true)
-            {
-                foreach (Control www in list3)
-                {
-                    nnn(www);
-                }
-                if (list2.Count == 0) { break; }
-                list3.Clear();
-                list3.AddRange(list2);
-                list2.Clear();
-            }
-            return list;
-
-            void nnn(Control bbb)
-            {
-                foreach (Control cnt in bbb.Controls)
-                {
-                    list.Add(cnt);
-                    list2.Add(cnt);
-                }
-            }
-        }
-
         public void OpenFolder() { Process.Start(settingFilePath); }
         public string ChooseFolder(bool viaText_Dialog, string viText)
         {

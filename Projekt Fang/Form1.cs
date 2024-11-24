@@ -17,7 +17,6 @@ namespace Projekt_Fang
     {
         public Form1()
         {
-            oldSize = base.Size;
             InitializeComponent();
             CheckForIllegalCrossThreadCalls = false;
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
@@ -28,8 +27,41 @@ namespace Projekt_Fang
             comboBox1.Text = comboBox1.Items[1].ToString();
 
             saveSettingsWS.SettingsInitilize(panel1.Controls);
+            saveSettingsWS.SizeInitilize(tabControl1,base.Size);
             //imageClipboard();
             getAllF(textBox2.Text);
+        }
+        SaveSettingsWS saveSettingsWS = new SaveSettingsWS();
+        Bitmap mergeBitmapy(Bitmap bmp1, Bitmap bmp2)
+        {
+            int delka = bmp1.Width;
+            int vyska = bmp1.Height;
+            bool VyskaNadDelka = false;
+
+            if (bmp1.Height < bmp2.Height) { vyska = bmp2.Height; }
+            if (bmp1.Width < bmp2.Width) { delka = bmp2.Width; }
+            if(Math.Abs(bmp1.Height - bmp2.Height) > Math.Abs(bmp1.Width - bmp2.Width)) 
+            { VyskaNadDelka=true; }
+
+            Bitmap retbmp = null;// new Bitmap(delka, vyska);
+            if(!VyskaNadDelka) { retbmp = new Bitmap(delka, bmp1.Height+bmp2.Height); }
+            else { retbmp = new Bitmap(bmp1.Width+bmp2.Width, vyska); }
+
+            using (Graphics g = Graphics.FromImage(retbmp))
+            {
+                if (VyskaNadDelka)
+                {
+                    g.DrawImage(bmp1, 0, 0);
+                    g.DrawImage(bmp2, bmp1.Width, 0);
+                }
+                else
+                {
+                    g.DrawImage(bmp1, 0, 0);
+                    g.DrawImage(bmp2, 0, bmp1.Height);
+                }
+            }
+
+            return retbmp;
         }
         void getAllF(string VetsiFolderPath)
         {
@@ -39,6 +71,7 @@ namespace Projekt_Fang
                 comboBox3.Items.Add(s.Replace(VetsiFolderPath, ""));
                 comboBox2.Items.Add(s.Replace(VetsiFolderPath, ""));
                 comboBox2.Text = comboBox2.Items[0].ToString();
+                comboBox3.Text = comboBox3.Items[0].ToString();
             }
         }
         public class Otazka
@@ -97,9 +130,7 @@ namespace Projekt_Fang
         }
         void LoadObr(string folderPath, bool pridat)
         {
-            string
-            n = Directory.GetFiles(folderPath, "*.json").FirstOrDefault();
-            Console.WriteLine("NNNN: " + n);
+            string n = Directory.GetFiles(folderPath, "*.json").FirstOrDefault();
             if (n == null) { n = ScanObr(folderPath); }
 
             StreamReader mugin = new StreamReader(n);
@@ -108,12 +139,13 @@ namespace Projekt_Fang
 
             if (pridat) { Otazky.AddRange(JsonSerializer.Deserialize<List<Otazka>>(precteno)); }
             else { Otazky = JsonSerializer.Deserialize<List<Otazka>>(precteno); }
-
         }
         private void button10_Click(object sender, EventArgs e)
         {
             saveSettingsWS.GetAllCon(tabControl1);
         }
+        Bitmap x1 = null;
+        Bitmap x2 = null;
         void imageClipboard()
         {
             killThread = true;
@@ -132,27 +164,38 @@ namespace Projekt_Fang
                     thread.Join();
                     Thread.Sleep(1000);
                 }
-
-
+                x1 = x2 = null;
                 void ccc()
                 {
                     if (Clipboard.ContainsImage())
                     {
-                        pictureBox1.Image = Clipboard.GetImage();
-                        imageChanged(pictureBox2);
+                        if (checkBox2.Checked && !checkBox3.Checked) { x2 = null; x1 = new Bitmap(Clipboard.GetImage()); }
+                        else if (checkBox3.Checked && checkBox2.Checked) { x2 = new Bitmap(Clipboard.GetImage()); }
+                        else if (checkBox3.Checked && !checkBox2.Checked) { x1 = new Bitmap(Clipboard.GetImage()); }
+                        else { x1 = new Bitmap(Clipboard.GetImage()); }
+                        
+
+                        if(x1 != null && x2 != null)
+                        {
+                            pictureBox1.Image = mergeBitmapy(x1, x2);
+                            pictureBox2.Image = imToTxt(mergeBitmapy(x1, x2));
+                        }
+                        else 
+                        {
+                            pictureBox1.Image = x1;
+                            pictureBox2.Image = imToTxt(x1); 
+                        }
+
+                        
+                        //imageChanged(pictureBox2);
+                        //pictureBox2.Image = imToTxt((Bitmap)Clipboard.GetImage());
                         Clipboard.Clear();
                     }
                 }
+
             }
         }
-
-        void imageChanged(PictureBox pictureBox)
-        {
-            if (!Clipboard.ContainsImage()) { return; }
-            Bitmap scImage = (Bitmap)Clipboard.GetImage();
-            pictureBox.Image = imToTxt((Bitmap)scImage);
-
-        }
+        
         Bitmap imToTxt(Bitmap bmp)
         {
             Bitmap obraz = (Bitmap)bmp.Clone();
@@ -193,26 +236,19 @@ namespace Projekt_Fang
             //pictureBox2.Image = obraz;
             return obraz;//page.GetText();
         }
-        SaveSettingsWS saveSettingsWS = new SaveSettingsWS();
-        private void button2_Click(object sender, EventArgs e)
-        {
-            textBox2.Text = saveSettingsWS.betterFolderSelection();
-            saveSettingsWS.SettingsSave(panel1.Controls);
-        }
-
 
         int imR = 0;
-
         void SaveQ(Bitmap bmp, string path)
         {
             if (bmp == null) { return; }
             string sQpathFolder = path;
             // fotka, deleni1, deleni2 atd
-            if (imR == 0) { imR = foundNMIm(); }
+            if (imR == 0) { imR = foundNMIm()+1; }
             string cestaKIm = $"{imR:0000}.jpg";
             imR++;
             bmp.Save(sQpathFolder + "\\" + cestaKIm);
 
+            //foundNMIm vygeneroval chatgpt
             int foundNMIm()
             {
                 List<int> jpgFiles = Directory.GetFiles(sQpathFolder, "*.jpg")
@@ -223,7 +259,7 @@ namespace Projekt_Fang
 
                 if (jpgFiles.Any())
                 {
-                    return jpgFiles.Max(); // Find the highest number 
+                    return jpgFiles.Max();                
                 }
                 return 0;
             }
@@ -242,17 +278,17 @@ namespace Projekt_Fang
             {
                 if (GetAsyncKeyState(kNext) < 0)
                 {
-                    button5_Click(button5, null);
+                    buttonKlik(button5, null);
                     Thread.Sleep(100);
                 }
                 else if (GetAsyncKeyState(kShowHide) < 0)
                 {
-                    button5_Click(button6, null);
+                    buttonKlik(button6, null);
                     Thread.Sleep(100);
                 }
                 else if (GetAsyncKeyState(kPrev) < 0)
                 {
-                    button5_Click(button3, null);
+                    buttonKlik(button3, null);
                     Thread.Sleep(100);
                 }
 
@@ -266,18 +302,15 @@ namespace Projekt_Fang
         int kolikaty = 0;
         bool killThread = false;
         bool start = true;
-        private void button5_Click(object sender, EventArgs e)
+        private void buttonKlik(object sender, EventArgs e)
         {
             switch (Convert.ToInt32(new string((sender as Button).Name.Where(char.IsDigit).ToArray())))
             {
                 case 1: SaveQ((Bitmap)pictureBox1.Image, textBox2.Text + comboBox3.Text); break;
-                case 5:
-
-                    if (kolikaty != obrazky.Count() - 1) { kolikaty++; }
-                    else { kolikaty = 0; }
-
-                    posun();
-
+                case 2:
+                    textBox2.Text = saveSettingsWS.betterFolderSelection();
+                    saveSettingsWS.SettingsSave(panel1.Controls);
+                    getAllF(textBox2.Text);
                     break;
                 case 3:
 
@@ -287,21 +320,6 @@ namespace Projekt_Fang
                     posun();
 
                     break;
-                case 6:
-                    showHide = !showHide;
-
-                    if (showHide)
-                    {
-                        pictureBox3.Image = new Bitmap(obrazky[kolikaty].Path);
-                        (sender as Button).Text = "Hide";
-                    }
-                    else
-                    {
-                        pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty].Path));
-                        (sender as Button).Text = "Show";
-                    }
-                    break;
-
                 case 4:
                     if (start)
                     {
@@ -338,7 +356,31 @@ namespace Projekt_Fang
                     }
 
                     break;
-                case 7:
+
+                case 5:
+
+                    if (kolikaty != obrazky.Count() - 1) { kolikaty++; }
+                    else { kolikaty = 0; }
+
+                    posun();
+
+                    break;
+                case 6:
+                    showHide = !showHide;
+
+                    if (showHide)
+                    {
+                        pictureBox3.Image = new Bitmap(obrazky[kolikaty].Path);
+                        (sender as Button).Text = "Hide";
+                    }
+                    else
+                    {
+                        pictureBox3.Image = imToTxt(new Bitmap(obrazky[kolikaty].Path));
+                        (sender as Button).Text = "Show";
+                    }
+                    break;
+
+               case 7:
                     if (killThread) { killThread = false; (sender as Button).Text = "Start"; }
                     else { imageClipboard(); (sender as Button).Text = "Stop"; }
                     break;
@@ -381,53 +423,14 @@ namespace Projekt_Fang
 
         }
 
-
-        // ze stack overflow + upravy
-        private Size oldSize;
-
-        private void Form1_Load(object sender, EventArgs e)
-        => oldSize = base.Size;
-        private void ResizeAll(Control control, Size newSize)
-        {
-            int width = newSize.Width - oldSize.Width;
-            control.Left += (control.Left * width) / oldSize.Width;
-            control.Width += (control.Width * width) / oldSize.Width;
-
-            int height = newSize.Height - oldSize.Height;
-            control.Top += (control.Top * height) / oldSize.Height;
-            control.Height += (control.Height * height) / oldSize.Height;
-        }
-        private void Form1_ResizeEnd(object sender, EventArgs e)
-        {
-            resize(panel2.Controls);
-            resize(tabPage2.Controls);
-            oldSize = base.Size;
-        }
-        void resize(Control.ControlCollection nnn)
-        {
-            ResizeAll(nnn.Owner, base.Size);
-            foreach (Control cnt in nnn)
-            {
-                ResizeAll(cnt, base.Size);
-            }
-        }
-        bool c = false;
+        private void Form1_ResizeEnd(object sender, EventArgs e) { saveSettingsWS.ResizeAll(base.Size); }
         private void Form1_Resize(object sender, EventArgs e)
         {
-            if (WindowState != FormWindowState.Minimized && c)
+            if (WindowState != FormWindowState.Minimized)
             {
-                resize(panel2.Controls);
-                resize(tabPage2.Controls);
-                resize(panel1.Controls);
-                resize(tabPage1.Controls);
-                oldSize = base.Size;
+                saveSettingsWS.ResizeAll(base.Size);
             }
-            c = true;
         }
-
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            TopMost = checkBox1.Checked;
-        }
+        private void checkBox1_CheckedChanged(object sender, EventArgs e) { TopMost = (sender as CheckBox).Checked; }
     }
 }
