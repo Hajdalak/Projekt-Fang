@@ -10,6 +10,9 @@ using System.Windows.Forms;
 using Tesseract;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Configuration;
+using IWshRuntimeLibrary;
+using System.Diagnostics;
 
 namespace Projekt_Fang
 {
@@ -27,9 +30,11 @@ namespace Projekt_Fang
             comboBox1.Text = comboBox1.Items[1].ToString();
 
             saveSettingsWS.SettingsInitilize(panel1.Controls);
-            saveSettingsWS.SizeInitilize(tabControl1,base.Size);
+            saveSettingsWS.SizeInitilize(tabControl1, base.Size);
             //imageClipboard();
             getAllF(textBox2.Text);
+            //panel4.Hide();
+            panel5.Show();
         }
         SaveSettingsWS saveSettingsWS = new SaveSettingsWS();
         Bitmap mergeBitmapy(Bitmap bmp1, Bitmap bmp2)
@@ -40,12 +45,12 @@ namespace Projekt_Fang
 
             if (bmp1.Height < bmp2.Height) { vyska = bmp2.Height; }
             if (bmp1.Width < bmp2.Width) { delka = bmp2.Width; }
-            if(Math.Abs(bmp1.Height - bmp2.Height) > Math.Abs(bmp1.Width - bmp2.Width)) 
-            { VyskaNadDelka=true; }
+            if (Math.Abs(bmp1.Height - bmp2.Height) > Math.Abs(bmp1.Width - bmp2.Width))
+            { VyskaNadDelka = true; }
 
             Bitmap retbmp = null;// new Bitmap(delka, vyska);
-            if(!VyskaNadDelka) { retbmp = new Bitmap(delka, bmp1.Height+bmp2.Height); }
-            else { retbmp = new Bitmap(bmp1.Width+bmp2.Width, vyska); }
+            if (!VyskaNadDelka) { retbmp = new Bitmap(delka, bmp1.Height + bmp2.Height); }
+            else { retbmp = new Bitmap(bmp1.Width + bmp2.Width, vyska); }
 
             using (Graphics g = Graphics.FromImage(retbmp))
             {
@@ -159,7 +164,7 @@ namespace Projekt_Fang
                 while (killThread)
                 {
                     Thread thread = new Thread(ccc);
-                    thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
+                    thread.SetApartmentState(ApartmentState.STA);
                     thread.Start();
                     thread.Join();
                     Thread.Sleep(1000);
@@ -173,20 +178,20 @@ namespace Projekt_Fang
                         else if (checkBox3.Checked && checkBox2.Checked) { x2 = new Bitmap(Clipboard.GetImage()); }
                         else if (checkBox3.Checked && !checkBox2.Checked) { x1 = new Bitmap(Clipboard.GetImage()); }
                         else { x1 = new Bitmap(Clipboard.GetImage()); }
-                        
 
-                        if(x1 != null && x2 != null)
+
+                        if (x1 != null && x2 != null)
                         {
                             pictureBox1.Image = mergeBitmapy(x1, x2);
                             pictureBox2.Image = imToTxt(mergeBitmapy(x1, x2));
                         }
-                        else 
+                        else
                         {
                             pictureBox1.Image = x1;
-                            pictureBox2.Image = imToTxt(x1); 
+                            pictureBox2.Image = imToTxt(x1);
                         }
 
-                        
+
                         //imageChanged(pictureBox2);
                         //pictureBox2.Image = imToTxt((Bitmap)Clipboard.GetImage());
                         Clipboard.Clear();
@@ -195,7 +200,7 @@ namespace Projekt_Fang
 
             }
         }
-        
+
         Bitmap imToTxt(Bitmap bmp)
         {
             Bitmap obraz = (Bitmap)bmp.Clone();
@@ -242,8 +247,7 @@ namespace Projekt_Fang
         {
             if (bmp == null) { return; }
             string sQpathFolder = path;
-            // fotka, deleni1, deleni2 atd
-            if (imR == 0) { imR = foundNMIm()+1; }
+            if (imR == 0) { imR = foundNMIm() + 1; }
             string cestaKIm = $"{imR:0000}.jpg";
             imR++;
             bmp.Save(sQpathFolder + "\\" + cestaKIm);
@@ -259,7 +263,7 @@ namespace Projekt_Fang
 
                 if (jpgFiles.Any())
                 {
-                    return jpgFiles.Max();                
+                    return jpgFiles.Max();
                 }
                 return 0;
             }
@@ -321,42 +325,9 @@ namespace Projekt_Fang
 
                     break;
                 case 4:
-                    if (start)
-                    {
-                        Console.WriteLine(textBox2.Text + comboBox2.Text);
-                        LoadObr((textBox2.Text + comboBox2.Text), false);
-                        obrazky = Otazky.ToArray();
-                        if (obrazky.Count() == 0) { }
-                        obrazky = chaosPole(obrazky);
-                        pictureBox3.Image = imToTxt(new Bitmap(obrazky[0].Path));
-                        label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
-                        start = false;
-                        kill = false;
-                        Thread SD = new Thread(KeyDet);
-                        SD.IsBackground = true;
-                        SD.Start();
-                        (sender as Button).Text = "End";
-                        button11.Text = $"Wrong: {obrazky[kolikaty].Spatne}";
-                        button12.Text = $"Right: {obrazky[kolikaty].Spravne}";
-                    }
-                    else
-                    {
-                        Otazky.Clear();
-                        Otazky.AddRange(obrazky.ToList().OrderBy(x => x.Path));
-                        ScanObr(textBox2.Text + comboBox2.Text);
-                        start = true;
-                        kolikaty = 0;
-                        pictureBox3.Image.Dispose();
-                        pictureBox3.Image = null;
-                        kill = true;
-                        (sender as Button).Text = "Start";
-                        button11.Text = $"Wrong: ";
-                        button12.Text = $"Right: ";
-                        label1.Text = "0 : 0";
-                    }
+                    startEnd();
 
                     break;
-
                 case 5:
 
                     if (kolikaty != obrazky.Count() - 1) { kolikaty++; }
@@ -379,8 +350,7 @@ namespace Projekt_Fang
                         (sender as Button).Text = "Show";
                     }
                     break;
-
-               case 7:
+                case 7:
                     if (killThread) { killThread = false; (sender as Button).Text = "Start"; }
                     else { imageClipboard(); (sender as Button).Text = "Stop"; }
                     break;
@@ -392,8 +362,73 @@ namespace Projekt_Fang
                     obrazky[kolikaty].Spravne += 1;
                     (sender as Button).Text = $"Right: {obrazky[kolikaty].Spravne}";
                     break;
-            }
+                case 13: saveSettingsWS.OpenFolder(); break;
 
+                
+            }
+            void startEnd()
+            {
+                if (start)
+                {
+                    Console.WriteLine(textBox2.Text + comboBox2.Text);
+                    if (checkBox4.Checked)
+                    {
+                        foreach (string radek in Directory.GetDirectories(textBox2.Text))
+                        {
+                            LoadObr((radek), true);
+                        }
+                    }
+                    else { LoadObr((textBox2.Text + comboBox2.Text), false); }
+
+                    obrazky = Otazky.ToArray();
+                    // idk k cemu to tu bylo if (obrazky.Count() == 0) { }
+                    obrazky = chaosPole(obrazky, checkBox5.Checked, checkBox6.Checked);
+                    pictureBox3.Image = imToTxt(new Bitmap(obrazky[0].Path));
+                    label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
+                    start = false;
+                    kill = false;
+                    Thread SD = new Thread(KeyDet);
+                    SD.IsBackground = true;
+                    SD.Start();
+                    (sender as Button).Text = "End";
+                    button11.Text = $"Wrong: {obrazky[kolikaty].Spatne}";
+                    button12.Text = $"Right: {obrazky[kolikaty].Spravne}";
+                    panel4.Show();
+                    panel5.Hide();
+
+                }
+                else
+                {
+                    Otazky.Clear();
+                    if (checkBox4.Checked)
+                    {
+                        Otazky.AddRange(obrazky.ToList().OrderBy(x => x.Subtrida));
+                        foreach (string radek in Directory.GetDirectories(textBox2.Text).Select(Path.GetFileName))
+                        {
+                            obrazky.ToList().Where(x => x.Subtrida == radek);
+                            ScanObr(textBox2.Text + radek);
+                        }
+                    }
+                    else
+                    {
+                        Otazky.AddRange(obrazky.ToList().OrderBy(x => x.Path));
+                        ScanObr(textBox2.Text + comboBox2.Text);
+                    }
+
+                    start = true;
+                    kolikaty = 0;
+                    pictureBox3.Image.Dispose();
+                    pictureBox3.Image = null;
+                    kill = true;
+                    (sender as Button).Text = "Start";
+                    button11.Text = $"Wrong: ";
+                    button12.Text = $"Right: ";
+                    label1.Text = "0 : 0";
+                    panel4.Hide();
+                    panel5.Show();
+
+                }
+            }
             void posun()
             {
                 if (pictureBox3 != null) { pictureBox3.Image.Dispose(); pictureBox3.Image = null; }
@@ -405,7 +440,7 @@ namespace Projekt_Fang
                 button6.Text = "Show";
                 showHide = false;
             }
-            Otazka[] chaosPole(Otazka[] pole)
+            Otazka[] chaosPole(Otazka[] pole, bool odSpatDoDob, bool pouzePoc)
             {
                 Otazka[] chaos = pole;
                 Random random = new Random();
@@ -417,7 +452,8 @@ namespace Projekt_Fang
                     chaos[i] = chaos[j];
                     chaos[j] = temp;
                 }
-                chaos = chaos.OrderBy(x => (x.Spravne - x.Spatne)).ToArray();
+                if (odSpatDoDob) { chaos = chaos.OrderBy(x => (x.Spravne - x.Spatne)).ToArray(); }
+                if (pouzePoc) { chaos = chaos.Take((int)numericUpDown1.Value).ToArray(); }
                 return chaos;
             }
 
