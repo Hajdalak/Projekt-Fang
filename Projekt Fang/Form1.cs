@@ -51,6 +51,7 @@ namespace Projekt_Fang
             Bitmap retbmp = null;// new Bitmap(delka, vyska);
             if (!VyskaNadDelka) { retbmp = new Bitmap(delka, bmp1.Height + bmp2.Height); }
             else { retbmp = new Bitmap(bmp1.Width + bmp2.Width, vyska); }
+            if(checkBox7.Checked) {VyskaNadDelka = !VyskaNadDelka; }
 
             using (Graphics g = Graphics.FromImage(retbmp))
             {
@@ -203,6 +204,7 @@ namespace Projekt_Fang
 
         Bitmap imToTxt(Bitmap bmp)
         {
+            //chatgpt + upravy
             Bitmap obraz = (Bitmap)bmp.Clone();
             using (TesseractEngine engine = new TesseractEngine(@"./tessdata", comboBox1.Text, EngineMode.Default))
             using (Pix img = PixConverter.ToPix(obraz))
@@ -252,19 +254,15 @@ namespace Projekt_Fang
             imR++;
             bmp.Save(sQpathFolder + "\\" + cestaKIm);
 
-            //foundNMIm vygeneroval chatgpt
             int foundNMIm()
             {
-                List<int> jpgFiles = Directory.GetFiles(sQpathFolder, "*.jpg")
-                .Select(Path.GetFileNameWithoutExtension) // Get the file names without extensions
-                .Where(name => int.TryParse(name, out _)) // Filter out non-numeric names
-                .Select(name => int.Parse(name)) // Convert the file names to integers
-                .ToList();
+                List<string> jpgFiles = Directory.GetFiles(sQpathFolder, "*.jpg")
+                .Select(Path.GetFileNameWithoutExtension).ToList();
+                jpgFiles.Sort();
+                jpgFiles.Reverse();
+                string n = jpgFiles.FirstOrDefault(x => int.TryParse(x, out int cislo) == true);
 
-                if (jpgFiles.Any())
-                {
-                    return jpgFiles.Max();
-                }
+                if (n != null){ return Convert.ToInt32(n); }
                 return 0;
             }
 
