@@ -118,13 +118,18 @@ namespace Projekt_Fang
 
             foreach (string radek in temp)
             {
-                tmp = Otazky.FirstOrDefault(otazka => otazka.Path == radek);
+                tmp = Otazky.FirstOrDefault(otazka => otazka.Path.Contains(Path.GetFileName(radek)));
 
                 if (tmp == null)
                 {
                     ul.Add(new Otazka(radek, x));
                 }
-                else { ul.Add(tmp); Console.WriteLine("pridano"); }
+                else 
+                {
+                    tmp.Path = radek;
+                    ul.Add(tmp); 
+                    //Console.WriteLine("pridano"); 
+                }
             }
             string cesta = $"{folderPath}{x}.json";
             Console.WriteLine("cesta: " + cesta);
@@ -191,14 +196,9 @@ namespace Projekt_Fang
                             pictureBox1.Image = x1;
                             pictureBox2.Image = imToTxt(x1);
                         }
-
-
-                        //imageChanged(pictureBox2);
-                        //pictureBox2.Image = imToTxt((Bitmap)Clipboard.GetImage());
                         Clipboard.Clear();
                     }
                 }
-
             }
         }
 
