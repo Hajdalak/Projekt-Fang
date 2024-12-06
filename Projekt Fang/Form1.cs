@@ -159,6 +159,8 @@ namespace Projekt_Fang
             Thread BD = new Thread(prtsc);
             BD.IsBackground = true;
             BD.Start();
+            if (killThread) { killThread = false; button7.Text = "Start"; }
+            else { imageClipboard(); button7.Text = "Stop"; }
             void prtsc()
             {
                 CheckForIllegalCrossThreadCalls = false;
@@ -278,6 +280,9 @@ namespace Projekt_Fang
         {
             while (kill == false)
             {
+                Thread.Sleep(70);
+                if (checkBox8.Checked && Form.ActiveForm != this) { Thread.Sleep(1000); continue; }
+
                 if (GetAsyncKeyState(kNext) < 0)
                 {
                     buttonKlik(button5, null);
@@ -293,9 +298,7 @@ namespace Projekt_Fang
                     buttonKlik(button3, null);
                     Thread.Sleep(100);
                 }
-
-
-                Thread.Sleep(70);
+                
             }
         }
 
@@ -349,8 +352,7 @@ namespace Projekt_Fang
                     }
                     break;
                 case 7:
-                    if (killThread) { killThread = false; (sender as Button).Text = "Start"; }
-                    else { imageClipboard(); (sender as Button).Text = "Stop"; }
+                    imageClipboard();
                     break;
                 case 11:
                     obrazky[kolikaty].Spatne += 1;
@@ -361,6 +363,14 @@ namespace Projekt_Fang
                     (sender as Button).Text = $"Right: {obrazky[kolikaty].Spravne}";
                     break;
                 case 13: saveSettingsWS.OpenFolder(); break;
+                case 14:
+                    tabControl1.SelectedTab = tabPage3;
+                    imageClipboard();
+                    Clipboard.SetImage(new Bitmap(obrazky[kolikaty].Path));
+                    //pictureBox1.Image = new Bitmap(obrazky[kolikaty].Path);
+
+
+                    break;
 
                 
             }
