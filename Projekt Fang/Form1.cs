@@ -10,9 +10,6 @@ using System.Windows.Forms;
 using Tesseract;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Configuration;
-using IWshRuntimeLibrary;
-using System.Diagnostics;
 
 namespace Projekt_Fang
 {
@@ -151,10 +148,7 @@ namespace Projekt_Fang
             if (pridat) { Otazky.AddRange(JsonSerializer.Deserialize<List<Otazka>>(precteno)); }
             else { Otazky = JsonSerializer.Deserialize<List<Otazka>>(precteno); }
         }
-        private void button10_Click(object sender, EventArgs e)
-        {
-            saveSettingsWS.GetAllCon(tabControl1);
-        }
+        
         Bitmap x1 = null;
         Bitmap x2 = null;
         void imageClipboard()
@@ -247,14 +241,21 @@ namespace Projekt_Fang
         }
 
         int imR = 0;
-        void SaveQ(Bitmap bmp, string path)
+        void SaveQ(Bitmap bmp, string path, bool prepsat = false)
         {
             if (bmp == null) { return; }
             string sQpathFolder = path;
-            if (imR == 0) { imR = foundNMIm() + 1; }
-            string cestaKIm = $"{imR:0000}.jpg";
-            imR++;
-            bmp.Save(sQpathFolder + "\\" + cestaKIm);
+            string cestaKIm = "";
+            if (!prepsat) 
+            {
+                if (imR == 0) { imR = foundNMIm() + 1; }
+                cestaKIm = $"{imR:0000}.jpg";
+                imR++;
+                sQpathFolder += "\\" + cestaKIm;
+            }
+            else { File.Delete(sQpathFolder); }
+            
+            bmp.Save(sQpathFolder);
 
             int foundNMIm()
             {
@@ -307,6 +308,7 @@ namespace Projekt_Fang
         int kolikaty = 0;
         bool killThread = false;
         bool start = true;
+        bool ochranaPosunu = false;
         private void buttonKlik(object sender, EventArgs e)
         {
             switch (Convert.ToInt32(new string((sender as Button).Name.Where(char.IsDigit).ToArray())))
@@ -365,17 +367,17 @@ namespace Projekt_Fang
                 case 13: saveSettingsWS.OpenFolder(); break;
                 case 14:
                     tabControl1.SelectedTab = tabPage3;
+                    killThread = true;
+                    Thread.Sleep(70);
+                    killThread = false;
                     imageClipboard();
                     Clipboard.SetImage(new Bitmap(obrazky[kolikaty].Path));
                     //pictureBox1.Image = new Bitmap(obrazky[kolikaty].Path);
-
-
                     break;
-
-                
             }
             void startEnd()
             {
+                if(ochranaPosunu) { return; }
                 if (start)
                 {
                     Console.WriteLine(textBox2.Text + comboBox2.Text);
@@ -439,6 +441,7 @@ namespace Projekt_Fang
             }
             void posun()
             {
+                ochranaPosunu = true;
                 if (pictureBox3 != null) { pictureBox3.Image.Dispose(); pictureBox3.Image = null; }
                 using (Bitmap x = new Bitmap(obrazky[kolikaty].Path))
                     pictureBox3.Image = imToTxt(x);
@@ -447,6 +450,7 @@ namespace Projekt_Fang
                 button12.Text = $"Right: {obrazky[kolikaty].Spravne}";
                 button6.Text = "Show";
                 showHide = false;
+                ochranaPosunu = false;
             }
             Otazka[] chaosPole(Otazka[] pole, bool odSpatDoDob, bool pouzePoc)
             {
