@@ -144,22 +144,46 @@ namespace Projekt_Fang
             StreamReader mugin = new StreamReader(n);
             string precteno = mugin.ReadToEnd();
             mugin.Close();
+            List<Otazka> tmp = JsonSerializer.Deserialize<List<Otazka>>(precteno);
 
-            if (pridat) { Otazky.AddRange(JsonSerializer.Deserialize<List<Otazka>>(precteno)); }
-            else { Otazky = JsonSerializer.Deserialize<List<Otazka>>(precteno); }
+            if (!tmp[0].Path.Contains(folderPath)) { tmp = ChangePath(folderPath); }
+
+            if (pridat) { Otazky.AddRange(tmp); }
+            else { Otazky = tmp; }
+        }
+        List<Otazka> ChangePath(string folderPath)
+        {
+            List<Otazka> tmp = new List<Otazka>();
+            string n = Directory.GetFiles(folderPath, "*.json").FirstOrDefault();
+            StreamReader mugin = new StreamReader(n);
+            string precteno = mugin.ReadToEnd();
+            mugin.Close();
+
+            tmp = JsonSerializer.Deserialize<List<Otazka>>(precteno);
+            foreach(Otazka zm in tmp)
+            {
+                zm.Path = folderPath + $"\\{Path.GetFileName(zm.Path)}";
+            }
+            StreamWriter hugin = new StreamWriter(n);
+            hugin.WriteLine(JsonSerializer.Serialize(tmp));
+            hugin.Close();
+
+            return tmp;
         }
         
         Bitmap x1 = null;
         Bitmap x2 = null;
+        bool drz = true;
         void imageClipboard()
         {
             killThread = true;
+            drz = !drz;
             Clipboard.Clear();
             Thread BD = new Thread(prtsc);
             BD.IsBackground = true;
             BD.Start();
-            if (killThread) { killThread = false; button7.Text = "Start"; }
-            else { imageClipboard(); button7.Text = "Stop"; }
+            if (drz) { killThread = false; button7.Text = "Start"; }
+            else { button7.Text = "Stop"; }
             void prtsc()
             {
                 CheckForIllegalCrossThreadCalls = false;
