@@ -25,15 +25,18 @@ namespace Projekt_Fang
             comboBox1.Items.Add("ces");
             comboBox1.Items.Add("lat");
             comboBox1.Text = comboBox1.Items[1].ToString();
-
-            saveSettingsWS.SettingsInitilize(panel1.Controls);
-            saveSettingsWS.SizeInitilize(tabControl1, base.Size);
+            saveSettingsWS.SettingsInitilize(tabControl1, base.Size);
             //imageClipboard();
             getAllF(textBox2.Text);
             //panel4.Hide();
             panel5.Show();
+            KeyName();
         }
+
+        // .cs ktere pouzivam mezi projekty na caste veci
         SaveSettingsWS saveSettingsWS = new SaveSettingsWS();
+
+        // udela z 2 bitmap 1
         Bitmap mergeBitmapy(Bitmap bmp1, Bitmap bmp2)
         {
             int delka = bmp1.Width;
@@ -66,9 +69,14 @@ namespace Projekt_Fang
 
             return retbmp;
         }
+        //najde vsechny slozky a vypise je do comboboxu
         void getAllF(string VetsiFolderPath)
         {
+            if (!Directory.Exists(VetsiFolderPath)) { return; }
+
             string[] slozky = Directory.GetDirectories(VetsiFolderPath);
+            if (slozky.Count() == 0) {  return; }
+
             foreach (string s in slozky)
             {
                 comboBox3.Items.Add(s.Replace(VetsiFolderPath, ""));
@@ -105,6 +113,8 @@ namespace Projekt_Fang
             }
         }
         List<Otazka> Otazky = new List<Otazka>();
+
+        //vytvori json z otazek a souboru kde otazky z pole maji prednost pred souborami
         string ScanObr(string folderPath)
         {
             string[] temp = Directory.GetFiles(folderPath, "*.jpg");
@@ -136,6 +146,7 @@ namespace Projekt_Fang
             mugin.Close();
             return cesta;
         }
+        //najde jsony dle pozadavku a nacte z nich otazky
         void LoadObr(string folderPath, bool pridat)
         {
             string n = Directory.GetFiles(folderPath, "*.json").FirstOrDefault();
@@ -151,6 +162,7 @@ namespace Projekt_Fang
             if (pridat) { Otazky.AddRange(tmp); }
             else { Otazky = tmp; }
         }
+        //kdyz neni stejna cesta jsonu a obrazku opravy ji na cestu souboru
         List<Otazka> ChangePath(string folderPath)
         {
             List<Otazka> tmp = new List<Otazka>();
@@ -174,6 +186,7 @@ namespace Projekt_Fang
         Bitmap x1 = null;
         Bitmap x2 = null;
         bool drz = true;
+        // zapina a vypina periodicke cteni schranky
         void imageClipboard()
         {
             killThread = true;
@@ -184,6 +197,7 @@ namespace Projekt_Fang
             BD.Start();
             if (drz) { killThread = false; button7.Text = "Start"; }
             else { button7.Text = "Stop"; }
+            // kouka na jinych threadach zda je ve schrance obrazek
             void prtsc()
             {
                 CheckForIllegalCrossThreadCalls = false;
@@ -196,6 +210,7 @@ namespace Projekt_Fang
                     Thread.Sleep(1000);
                 }
                 x1 = x2 = null;
+                // podle podminek vybira co se bude delat s bitmapou 
                 void ccc()
                 {
                     if (Clipboard.ContainsImage())
@@ -221,10 +236,14 @@ namespace Projekt_Fang
                 }
             }
         }
-
+        //chatgpt + upravy
+        //vyuzuva knihovnu tesseract ktera umi OCR pouzivam ji at mi da souradnice textu kde pak na
+        // bitmapu namaluju bily obdelnik na souradnice textu diky tomu "vytvorim karticku"
+        //celou praci s knihovnou vygeneroval chatgpt ja jen to predelal at mi to dava souradnice
+        //namaluje bilej obdelnik a opravil memory leak
         Bitmap imToTxt(Bitmap bmp)
         {
-            //chatgpt + upravy
+            
             Bitmap obraz = (Bitmap)bmp.Clone();
             using (TesseractEngine engine = new TesseractEngine(@"./tessdata", comboBox1.Text, EngineMode.Default))
             using (Pix img = PixConverter.ToPix(obraz))
@@ -264,10 +283,13 @@ namespace Projekt_Fang
             return obraz;//page.GetText();
         }
 
+
+        // ukladani bitmap a generovani jejich jmena
         int imR = 0;
         void SaveQ(Bitmap bmp, string path, bool prepsat = false)
         {
             if (bmp == null) { return; }
+            if(tempPathProZmenu != "") { bmp.Save(tempPathProZmenu); tempPathProZmenu = ""; }
             string sQpathFolder = path;
             string cestaKIm = "";
             if (!prepsat) 
@@ -294,13 +316,14 @@ namespace Projekt_Fang
             }
 
         }
-
+        
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(Keys vKey);
         bool kill = false;
         Keys kNext = Keys.N;
         Keys kPrev = Keys.J;
         Keys kShowHide = Keys.M;
+        // snima keystrouky i bez fokusu na aplikaci
         void KeyDet()
         {
             while (kill == false)
@@ -326,13 +349,59 @@ namespace Projekt_Fang
                 
             }
         }
+        void KeyName()
+        {
+            button8.Text = $"Next: {Enum.GetName(typeof(Keys), kNext)}";
+            button9.Text = $"Prev: {Enum.GetName(typeof(Keys), kPrev)}";
+            button10.Text = $"Show: {Enum.GetName(typeof(Keys), kShowHide)}";
+        }
+        void KeyBind(object sender, EventArgs e)
+        {
+            Keys temp = Keys.None;
+            while(temp == Keys.None)
+            {
+                temp = getKey();
+            }
 
+            switch (Convert.ToInt32(new string((sender as Button).Name.Where(char.IsDigit).ToArray())))
+            {
+                case 8:
+                    kNext = temp;
+                    break;
+
+                case 9: 
+                    kPrev = temp;
+                    break;
+
+                case 10: 
+                    kShowHide = temp;
+                    break;
+            }
+            KeyName();
+
+
+            Keys getKey()
+            {
+                for (int key = 0; key < 256; key++)
+                {
+                    short keyState = GetAsyncKeyState((Keys)key);
+
+                    if ((keyState & 0x8000) != 0 && (Keys)key != Keys.End && (Keys)key != Keys.None)
+                    {
+                        return (Keys)key;
+                    }
+                }
+                return Keys.None;
+            }
+        }
         Otazka[] obrazky = { };
         bool showHide = false;
         int kolikaty = 0;
         bool killThread = false;
         bool start = true;
         bool ochranaPosunu = false;
+        string tempPathProZmenu = "";
+        // aby nebylo nekolik vojdu na butonclick tak jsem udelal jednu fce ktera podle jmena odesilatele to rozdeli
         private void buttonKlik(object sender, EventArgs e)
         {
             switch (Convert.ToInt32(new string((sender as Button).Name.Where(char.IsDigit).ToArray())))
@@ -395,10 +464,16 @@ namespace Projekt_Fang
                     Thread.Sleep(70);
                     killThread = false;
                     imageClipboard();
-                    Clipboard.SetImage(new Bitmap(obrazky[kolikaty].Path));
+                    tempPathProZmenu = obrazky[kolikaty].Path;
+                    Clipboard.SetImage(new Bitmap(tempPathProZmenu));
                     //pictureBox1.Image = new Bitmap(obrazky[kolikaty].Path);
                     break;
+                case 15:
+                    saveSettingsWS.SettingsSave(panel3.Controls);
+                    break;
             }
+            // resi jak upravit ui pri startu ci vypnuti daneho okruhu kde start resi cteni souboru
+            // a generovani pole otazek dle podminek a end uklada zmenu otazek jako napr zmenu wrong nebo right
             void startEnd()
             {
                 if(ochranaPosunu) { return; }
@@ -415,7 +490,7 @@ namespace Projekt_Fang
                     else { LoadObr((textBox2.Text + comboBox2.Text), false); }
 
                     obrazky = Otazky.ToArray();
-                    // idk k cemu to tu bylo if (obrazky.Count() == 0) { }
+                    // idk proc to tu bylo if (obrazky.Count() == 0) { }
                     obrazky = chaosPole(obrazky, checkBox5.Checked, checkBox6.Checked);
                     pictureBox3.Image = imToTxt(new Bitmap(obrazky[0].Path));
                     label1.Text = $"{kolikaty + 1} : {obrazky.Count()}";
@@ -463,6 +538,7 @@ namespace Projekt_Fang
 
                 }
             }
+            // resi zmenu ui pri zmene vybrane otazky
             void posun()
             {
                 ochranaPosunu = true;
@@ -476,6 +552,7 @@ namespace Projekt_Fang
                 showHide = false;
                 ochranaPosunu = false;
             }
+            //nahodne prohazi pole a pak srovna dle podminek
             Otazka[] chaosPole(Otazka[] pole, bool odSpatDoDob, bool pouzePoc)
             {
                 Otazka[] chaos = pole;
@@ -495,6 +572,7 @@ namespace Projekt_Fang
 
         }
 
+        //resi maximalizaci aplikace
         private void Form1_ResizeEnd(object sender, EventArgs e) { saveSettingsWS.ResizeAll(base.Size); }
         private void Form1_Resize(object sender, EventArgs e)
         {
@@ -504,5 +582,10 @@ namespace Projekt_Fang
             }
         }
         private void checkBox1_CheckedChanged(object sender, EventArgs e) { TopMost = (sender as CheckBox).Checked; }
+
+        private void checkBox9_CheckedChanged(object sender, EventArgs e)
+        {
+            saveSettingsWS.MakeAppStartWithPC(checkBox9.Checked);
+        }
     }
 }

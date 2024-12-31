@@ -13,6 +13,7 @@ namespace Projekt_Fang
 {
     internal class SaveSettingsWS
     {
+
         public class CntData
         {
             public string nameOfControl { get; set; }
@@ -26,24 +27,27 @@ namespace Projekt_Fang
             }
         }
 
-        // udelej default nacteni napr. settingFilePath a cesta epubu
-
         private string settingFilePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\lsekaiMan" + "\\" + Assembly.GetExecutingAssembly().GetName().Name;
         private static string nameTxt01 = "Settings.txt";
         private Size oldSize;
         List<Control> allCon = new List<Control>();
-        public void SettingsInitilize(Control.ControlCollection control)
+        // resi zda existuje slozka a soubor nastaveni
+        public void SettingsInitilize(Control TopControlKolekce, Size FormSize)
         {
             if (!Directory.Exists(settingFilePath)) { Directory.CreateDirectory(settingFilePath); }
             if (!File.Exists(settingFilePath + "\\" + nameTxt01)) { File.Create(settingFilePath + "\\" + nameTxt01); }
-            else { SettingsLoad(control);  }
+            else { SizeInitilize(); SettingsLoad();  }
+
+            // ziska vsechny polozky ui a ulozi je do listu a ulozi velikost formu
+            void SizeInitilize()
+            {
+                allCon.Clear();
+                allCon.AddRange(GetAllCon(TopControlKolekce));
+                oldSize = FormSize;
+            }
         }
-        public void SizeInitilize(Control TopControl, Size FormSize)
-        {
-            allCon.Clear();
-            allCon.AddRange(GetAllCon(TopControl));
-            oldSize = FormSize;
-        }
+        
+        // ziska vsechny polozky ui //idk mozna lepsi zpusob
         public List<Control> GetAllCon(Control coll)
         {
             List<Control> list = new List<Control>();
@@ -73,6 +77,7 @@ namespace Projekt_Fang
                 }
             }
         }
+        //prejmuto ze stack overflow skaluje velikost aplikace
         public void ResizeAll(Size newSize)
         {
             foreach (Control control in allCon)
@@ -87,6 +92,7 @@ namespace Projekt_Fang
             }
             oldSize = newSize;
         }
+        // ukladani nejakych hodnot ui do .txt napr. checkboxy true/false atd.
         public void SettingsSave(Control.ControlCollection control)
         {
             // veci oddeluje "\n" a jmena od hodnot a hodnoty od sebe "_"
@@ -109,7 +115,8 @@ namespace Projekt_Fang
             mugin.Write(CW);
             mugin.Close();
         }
-        public string SettingsLoad(Control.ControlCollection control)
+        // nacte hodnoty ui podle .txt ktery vygeneruje predchozi void
+        public string SettingsLoad()
         {
 
             StreamReader hugin = new StreamReader(settingFilePath + "\\" + nameTxt01);
@@ -117,35 +124,27 @@ namespace Projekt_Fang
             hugin.Close();
             string[] komponenty = vse.Split('\n');
 
-            if (control.Owner.Name != komponenty[0]) { return ""; }
-
             for (int i = 1; i < (komponenty.Count() - 2); i++)
             {
                 CntData cntData = new CntData(komponenty[i].Split('_')[0], komponenty[i].Split('_')[1], komponenty[i].Split('_')[2]);
+                Control cntNal = allCon.FirstOrDefault(x => x.Name == cntData.nameOfControl);
+                Console.WriteLine(cntNal.Name);
                 Console.WriteLine(cntData.typeOfControl + "_" + cntData.nameOfControl + "_" + cntData.dataFromControl);
                 if (cntData.typeOfControl.Contains("CheckBox"))
                 {
-                    Control[] foundControls = control.Find(cntData.nameOfControl, true); // The second argument (true) searches recursively
-                    (foundControls[0] as CheckBox).Checked = (cntData.dataFromControl == "True");
+                    (cntNal as CheckBox).Checked = (cntData.dataFromControl == "True");
                 }
                 else if (cntData.typeOfControl.Contains("TextBox"))
                 {
-                    
-                    Control[] foundControls = control.Find(cntData.nameOfControl, true);
-                    (foundControls[0] as TextBox).Text = cntData.dataFromControl;
+                    (cntNal as TextBox).Text = cntData.dataFromControl;
                 }
             }
             return vse;
         }
+        // otevre slozku ulozeneho nastaveni
         public void OpenFolder() { Process.Start(settingFilePath); }
-        public string ChooseFolder(bool viaText_Dialog, string viText)
-        {
-            if (!viaText_Dialog) { settingFilePath = betterFolderSelection(); }
-            else { settingFilePath = viText; }
-
-            return settingFilePath + "\\" + nameTxt01;
-        }
-        public string pathToSettings() { return settingFilePath; /*+ "\\"+ nameTxt01; */}
+        // chatgpt nebo stackoverflow vytvori zastupce aplikace kteryho nakopiruje ho do slozky ve ktery
+        // se spousti aplikace po zapnuti a nbeo ho tam smaze
         public void MakeAppStartWithPC(bool make_delete)
         {
             //using IWshRuntimeLibrary; // > Ref > COM > Windows Script Host Object  
@@ -170,6 +169,7 @@ namespace Projekt_Fang
             }
             else if (!make_delete && start_ups) { System.IO.File.Delete(link); }
         }
+        // vygeneroval chatgpt na lepsi vybyrani slozek
         public string betterFolderSelection()
         {
             OpenFileDialog folderBrowser = new OpenFileDialog();
