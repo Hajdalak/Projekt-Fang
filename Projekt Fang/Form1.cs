@@ -30,6 +30,7 @@ namespace Projekt_Fang
             getAllF(textBox2.Text);
             //panel4.Hide();
             panel5.Show();
+            saveLoadKeybind(false);
             KeyName();
         }
 
@@ -394,6 +395,35 @@ namespace Projekt_Fang
                 return Keys.None;
             }
         }
+        void saveLoadKeybind(bool saveLoad)
+        {
+            string tcesta = saveSettingsWS.settingFilePath + "\\KeyBinds.txt";
+
+            if (saveLoad) 
+            {
+                StreamWriter hugin = new StreamWriter(tcesta);
+                string c = 
+                    $"{Enum.GetName(typeof(Keys), kShowHide)}_" +
+                    $"{Enum.GetName(typeof(Keys), kPrev)}_" +
+                    $"{Enum.GetName(typeof(Keys), kNext)}";
+
+                hugin.WriteLine(c);
+                hugin.Close();
+            }
+            else 
+            {
+                if (!File.Exists(tcesta)) { return; }
+
+                StreamReader mugin = new StreamReader(tcesta);
+                string soub = mugin.ReadToEnd().Replace("\n","");
+                mugin.Close();
+
+                string[] radky = soub.Split('_');
+                kShowHide = (Keys)Enum.Parse(typeof(Keys), radky[0], true);
+                kPrev = (Keys)Enum.Parse(typeof(Keys), radky[1], true);
+                kNext = (Keys)Enum.Parse(typeof(Keys), radky[2], true);
+            }
+        }
         Otazka[] obrazky = { };
         bool showHide = false;
         int kolikaty = 0;
@@ -470,6 +500,7 @@ namespace Projekt_Fang
                     break;
                 case 15:
                     saveSettingsWS.SettingsSave(panel3.Controls);
+                    saveLoadKeybind(true);
                     break;
             }
             // resi jak upravit ui pri startu ci vypnuti daneho okruhu kde start resi cteni souboru
@@ -581,7 +612,8 @@ namespace Projekt_Fang
                 saveSettingsWS.ResizeAll(base.Size);
             }
         }
-        private void checkBox1_CheckedChanged(object sender, EventArgs e) { TopMost = (sender as CheckBox).Checked; }
+        private void checkBox1_CheckedChanged(object sender, EventArgs e) 
+        { TopMost = (sender as CheckBox).Checked; }
 
         private void checkBox9_CheckedChanged(object sender, EventArgs e)
         {

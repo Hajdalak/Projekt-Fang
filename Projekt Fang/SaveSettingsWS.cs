@@ -27,7 +27,7 @@ namespace Projekt_Fang
             }
         }
 
-        private string settingFilePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\lsekaiMan" + "\\" + Assembly.GetExecutingAssembly().GetName().Name;
+        public string settingFilePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\lsekaiMan" + "\\" + Assembly.GetExecutingAssembly().GetName().Name;
         private static string nameTxt01 = "Settings.txt";
         private Size oldSize;
         List<Control> allCon = new List<Control>();
