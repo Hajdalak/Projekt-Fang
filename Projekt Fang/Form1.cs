@@ -438,7 +438,7 @@ namespace Projekt_Fang
                 case 1: SaveQ((Bitmap)pictureBox1.Image, textBox2.Text + comboBox3.Text); break;
                 case 2:
                     textBox2.Text = saveSettingsWS.betterFolderSelection();
-                    saveSettingsWS.SettingsSave(panel1.Controls);
+                    saveSettingsWS.SettingsSave(panel3.Controls);
                     getAllF(textBox2.Text);
                     break;
                 case 3:

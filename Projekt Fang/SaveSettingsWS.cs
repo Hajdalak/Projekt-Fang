@@ -35,7 +35,7 @@ namespace Projekt_Fang
         public void SettingsInitilize(Control TopControlKolekce, Size FormSize)
         {
             if (!Directory.Exists(settingFilePath)) { Directory.CreateDirectory(settingFilePath); }
-            if (!File.Exists(settingFilePath + "\\" + nameTxt01)) { File.Create(settingFilePath + "\\" + nameTxt01); }
+            if (!File.Exists(settingFilePath + "\\" + nameTxt01)) { using (File.Create(settingFilePath + "\\" + nameTxt01)) ; }
             else { SizeInitilize(); SettingsLoad();  }
 
             // ziska vsechny polozky ui a ulozi je do listu a ulozi velikost formu
