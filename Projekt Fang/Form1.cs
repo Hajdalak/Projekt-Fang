@@ -188,6 +188,7 @@ namespace Projekt_Fang
         Bitmap x2 = null;
         bool drz = true;
         // zapina a vypina periodicke cteni schranky
+        bool killThread = true; //false pada? otestovat
         void imageClipboard()
         {
             killThread = true;
@@ -196,7 +197,7 @@ namespace Projekt_Fang
             Thread BD = new Thread(prtsc);
             BD.IsBackground = true;
             BD.Start();
-            if (drz) { killThread = false; button7.Text = "Start"; }
+            if (drz) { killThread = false; button7.Text = "StartThread"; }
             else { button7.Text = "Stop"; }
             // kouka na jinych threadach zda je ve schrance obrazek
             void prtsc()
@@ -279,8 +280,6 @@ namespace Projekt_Fang
                     }
                 } while (iter.Next(PageIteratorLevel.Word));
             }
-
-            //pictureBox2.Image = obraz;
             return obraz;//page.GetText();
         }
 
@@ -427,7 +426,7 @@ namespace Projekt_Fang
         Otazka[] obrazky = { };
         bool showHide = false;
         int kolikaty = 0;
-        bool killThread = false;
+        
         bool start = true;
         bool ochranaPosunu = false;
         string tempPathProZmenu = "";
